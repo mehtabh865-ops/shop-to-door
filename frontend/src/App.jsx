@@ -61,6 +61,38 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', () => {
+      setShowInstallBtn(false);
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   // Auth Modal State
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
@@ -375,6 +407,27 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* 1-Tap PWA Install Bar */}
+      {showInstallBtn && (
+        <div className="mx-4 mt-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl text-white flex items-center justify-between shadow-lg shadow-blue-500/25 animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="text-xs font-bold leading-tight">Install Shop to Door</div>
+              <div className="text-[10px] text-blue-100">Add to home screen for native app feel</div>
+            </div>
+          </div>
+          <button
+            onClick={handleInstallApp}
+            className="px-3.5 py-1.5 rounded-xl bg-white text-blue-600 text-xs font-bold shadow-sm active:scale-95"
+          >
+            Install
+          </button>
+        </div>
+      )}
 
       {/* CUSTOMER STOREFRONT VIEW (LIVE MONGO DATA) */}
       {role === 'customer' && (

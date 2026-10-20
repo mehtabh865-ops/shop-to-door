@@ -9,15 +9,18 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      injectRegister: 'auto',
+      includeAssets: ['favicon.svg', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Shop to Door',
         short_name: 'Shop2Door',
-        description: 'Hyperlocal E-Commerce',
-        theme_color: '#0a0a0c',
-        background_color: '#0a0a0c',
+        description: 'Ultra-Fast Hyperlocal Shopping & Store Management',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/icon-192.png',
@@ -32,6 +35,12 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}']
+      },
+      devOptions: {
+        enabled: true
       }
     })
   ],
