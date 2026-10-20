@@ -53,6 +53,18 @@ if (config.env === 'production') {
 // v1 api routes
 app.use('/v1', routes);
 
+// Serve frontend static build if available
+const path = require('path');
+const fs = require('fs');
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.url.startsWith('/v1')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
   next(new ApiError(httpStatus.NOT_FOUND, 'Not found'));
