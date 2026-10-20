@@ -1,30 +1,27 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { authService, userService, tokenService, emailService, shopService } = require('../services');
-const { Shop } = require('../models');
+const { authService, userService, tokenService, emailService } = require('../services');
+
+const checkPhone = catchAsync(async (req, res) => {
+  const result = await authService.checkPhoneExists(req.body.phone);
+  res.send(result);
+});
 
 const register = catchAsync(async (req, res) => {
   const user = await userService.createUser(req.body);
-  if (user.role === 'dukandar') {
-    await Shop.create({
-      name: req.body.shopName || `${user.name}'s Shop`,
-      owner: user._id,
-      category: req.body.category || 'grocery',
-      phone: user.phoneNumber || '9876543210',
-      description: 'Local neighborhood store with fast doorstep delivery',
-      isOpen: true,
-      deliveryRadiusKm: 5,
-    });
-  }
   const tokens = await tokenService.generateAuthTokens(user);
   res.status(httpStatus.CREATED).send({ user, tokens });
 });
 
 const login = catchAsync(async (req, res) => {
-  const { email, password } = req.body;
-  const user = await authService.loginUserWithEmailAndPassword(email, password);
+  const identifier = req.body.phone || req.body.email;
+  const user = await authService.loginUserWithEmailAndPassword(identifier, req.body.password);
   const tokens = await tokenService.generateAuthTokens(user);
   res.send({ user, tokens });
+});
+
+const getMe = catchAsync(async (req, res) => {
+  res.send({ user: req.user });
 });
 
 const logout = catchAsync(async (req, res) => {
@@ -60,8 +57,10 @@ const verifyEmail = catchAsync(async (req, res) => {
 });
 
 module.exports = {
+  checkPhone,
   register,
   login,
+  getMe,
   logout,
   refreshTokens,
   forgotPassword,

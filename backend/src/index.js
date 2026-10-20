@@ -1,10 +1,7 @@
 const dns = require('dns');
-// Ensure robust SRV lookup across ISPs and Windows environments
 try {
   dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
-} catch (e) {
-  // Use default OS DNS if setServers fails
-}
+} catch (e) {}
 
 const mongoose = require('mongoose');
 const app = require('./app');

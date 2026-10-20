@@ -1,46 +1,29 @@
 const mongoose = require('mongoose');
 const { toJSON, paginate } = require('./plugins');
 
-const orderStatuses = [
-  'placed',
-  'accepted',
-  'packing',
-  'out_for_delivery',
-  'delivered',
-  'cancelled',
-];
-
-const orderItemSchema = mongoose.Schema(
-  {
-    product: {
-      type: mongoose.SchemaTypes.ObjectId,
-      ref: 'Product',
-      required: true,
-    },
-    name: {
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-    unit: {
-      type: String,
-      default: 'piece',
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
-    },
+const orderItemSchema = mongoose.Schema({
+  productId: {
+    type: mongoose.SchemaTypes.ObjectId,
+    ref: 'Product',
   },
-  { _id: false }
-);
+  name: {
+    type: String,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  unit: {
+    type: String,
+    default: '1 unit',
+  },
+});
 
 const orderSchema = mongoose.Schema(
   {
@@ -48,65 +31,55 @@ const orderSchema = mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
+    },
+    customerId: {
+      type: mongoose.SchemaTypes.ObjectId,
+      ref: 'User',
       index: true,
     },
     customer: {
       type: mongoose.SchemaTypes.ObjectId,
       ref: 'User',
-      required: true,
+      index: true,
+    },
+    customerName: {
+      type: String,
+      default: '',
+    },
+    customerPhone: {
+      type: String,
+      default: '',
+    },
+    shopId: {
+      type: mongoose.SchemaTypes.ObjectId,
+      ref: 'Shop',
       index: true,
     },
     shop: {
       type: mongoose.SchemaTypes.ObjectId,
       ref: 'Shop',
-      required: true,
       index: true,
     },
-    items: {
-      type: [orderItemSchema],
-      required: true,
-      validate(v) {
-        if (!v || v.length === 0) {
-          throw new Error('Order must contain at least one item');
-        }
-      },
-    },
+    items: [orderItemSchema],
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
-    deliveryAddress: {
-      recipientName: { type: String, required: true },
-      phone: { type: String, required: true },
-      street: { type: String, required: true },
-      landmark: { type: String, default: '' },
-      city: { type: String, default: '' },
-      pincode: { type: String, required: true },
+    deliveryOtp: {
+      type: String,
+      required: true,
+      trim: true,
     },
     status: {
       type: String,
-      enum: orderStatuses,
-      default: 'placed',
-      index: true,
-    },
-    paymentMethod: {
-      type: String,
-      enum: ['cod', 'upi', 'card'],
-      default: 'cod',
-    },
-    paymentStatus: {
-      type: String,
-      enum: ['pending', 'paid', 'refunded'],
+      enum: ['pending', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'],
       default: 'pending',
     },
-    deliveryOtp: {
+    deliveryAddress: {
       type: String,
-      default: () => Math.floor(1000 + Math.random() * 9000).toString(),
-    },
-    cancellationReason: {
-      type: String,
-      default: '',
+      default: 'Customer Doorstep',
     },
   },
   {
@@ -117,7 +90,10 @@ const orderSchema = mongoose.Schema(
 orderSchema.plugin(toJSON);
 orderSchema.plugin(paginate);
 
+// Compound indexing for sub-millisecond retrieval by customer or shop
+orderSchema.index({ customerId: 1, createdAt: -1 });
+orderSchema.index({ shopId: 1, createdAt: -1 });
+
 const Order = mongoose.model('Order', orderSchema);
 
 module.exports = Order;
-module.exports.orderStatuses = orderStatuses;

@@ -35,20 +35,31 @@ const userSchema = mongoose.Schema(
       },
       private: true, // used by the toJSON plugin
     },
+    phone: {
+      type: String,
+      trim: true,
+      sparse: true,
+      index: true,
+    },
+    isPhoneVerified: {
+      type: Boolean,
+      default: true,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number],
+        default: [77.209, 28.6139],
+      },
+    },
     role: {
       type: String,
       enum: roles,
       default: 'customer',
-    },
-    phoneNumber: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    shopName: {
-      type: String,
-      trim: true,
-      default: '',
     },
     isEmailVerified: {
       type: Boolean,
@@ -75,6 +86,12 @@ userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
   return !!user;
 };
 
+userSchema.statics.isPhoneTaken = async function (phone, excludeUserId) {
+  if (!phone) return false;
+  const user = await this.findOne({ phone, _id: { $ne: excludeUserId } });
+  return !!user;
+};
+
 /**
  * Check if password matches the user's password
  * @param {string} password
@@ -85,11 +102,12 @@ userSchema.methods.isPasswordMatch = async function (password) {
   return bcrypt.compare(password, user.password);
 };
 
-userSchema.pre('save', async function () {
+userSchema.pre('save', async function (next) {
   const user = this;
   if (user.isModified('password')) {
     user.password = await bcrypt.hash(user.password, 8);
   }
+  next();
 });
 
 /**

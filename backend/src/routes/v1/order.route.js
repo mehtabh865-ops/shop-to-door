@@ -1,25 +1,13 @@
 const express = require('express');
 const auth = require('../../middlewares/auth');
-const validate = require('../../middlewares/validate');
-const { orderValidation } = require('../../validations');
-const { orderController } = require('../../controllers');
+const orderController = require('../../controllers/order.controller');
 
 const router = express.Router();
 
-// Customer: Place order & View their own orders
-router.route('/').post(auth(), validate(orderValidation.createOrder), orderController.createOrder);
-router.route('/my-orders').get(auth(), validate(orderValidation.getOrders), orderController.getMyOrders);
-
-// Dukandar: View incoming orders for their shop
-router.route('/shop-orders').get(auth('manageOrders'), validate(orderValidation.getOrders), orderController.getShopOrders);
-
-// Dukandar: Update order status & Verify delivery OTP
-router
-  .route('/:orderId/status')
-  .patch(auth('manageOrders'), validate(orderValidation.updateOrderStatus), orderController.updateOrderStatus);
-
-router
-  .route('/:orderId/verify-otp')
-  .post(auth('manageOrders'), validate(orderValidation.verifyDeliveryOtp), orderController.verifyDeliveryOtp);
+router.post('/', auth(), orderController.createOrder);
+router.get('/my-orders', auth(), orderController.getMyOrders);
+router.get('/dukandar-orders', auth(), orderController.getDukandarOrders);
+router.patch('/:orderId/status', auth(), orderController.updateOrderStatus);
+router.post('/:orderId/verify-otp', auth(), orderController.verifyOtp);
 
 module.exports = router;

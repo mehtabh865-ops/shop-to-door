@@ -1,57 +1,60 @@
 const httpStatus = require('http-status');
-const { Shop, User } = require('../models');
+const { Shop } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Create or update shop profile for a dukandar
- * @param {ObjectId} ownerId
- * @param {Object} shopBody
- * @returns {Promise<Shop>}
+ * Create a shop for dukandar
  */
-const createOrUpdateShop = async (ownerId, shopBody) => {
-  let shop = await Shop.findOne({ owner: ownerId });
-  if (shop) {
-    Object.assign(shop, shopBody);
-    await shop.save();
-    return shop;
+const createShop = async (ownerId, shopBody) => {
+  const existingShop = await Shop.findOne({ ownerId });
+  if (existingShop) {
+    Object.assign(existingShop, shopBody);
+    return existingShop.save();
   }
-  shop = await Shop.create({ ...shopBody, owner: ownerId });
-  return shop;
+  return Shop.create({
+    ownerId,
+    shopName: shopBody.shopName || 'Apni Dukan',
+    description: shopBody.description || 'Fresh grocery & essentials at your doorstep',
+    phone: shopBody.phone,
+    address: shopBody.address || 'Local Market Area',
+    location: shopBody.location || { type: 'Point', coordinates: [77.209, 28.6139] },
+    deliveryRadiusKm: shopBody.deliveryRadiusKm || 3.5,
+    isOpen: shopBody.isOpen !== undefined ? shopBody.isOpen : true,
+  });
 };
 
 /**
- * Get shop by owner ID (Dukandar)
- * @param {ObjectId} ownerId
- * @returns {Promise<Shop>}
+ * Get shop by owner ID
  */
 const getShopByOwner = async (ownerId) => {
-  let shop = await Shop.findOne({ owner: ownerId });
+  return Shop.findOne({ ownerId });
+};
+
+/**
+ * Ensure shop exists for dukandar
+ */
+const ensureShopForDukandar = async (user) => {
+  let shop = await Shop.findOne({ ownerId: user._id || user.id });
   if (!shop) {
-    const user = await User.findById(ownerId);
-    if (user && user.role === 'dukandar') {
-      shop = await Shop.create({
-        name: user.shopName || `${user.name}'s Shop`,
-        owner: ownerId,
-        category: 'grocery',
-        phone: user.phoneNumber || '9876543210',
-        description: 'Local neighborhood store with fast doorstep delivery',
-        isOpen: true,
-        deliveryRadiusKm: 5,
-      });
-      return shop;
-    }
-    throw new ApiError(httpStatus.NOT_FOUND, 'Shop profile not found for this user');
+    shop = await Shop.create({
+      ownerId: user._id || user.id,
+      shopName: user.name ? `${user.name} General Store` : 'Apni Dukan',
+      description: 'Fresh grocery & essentials delivered in 15 mins',
+      phone: user.phone || '9876543210',
+      address: 'Main Market, City Center',
+      location: { type: 'Point', coordinates: [77.209, 28.6139] },
+      deliveryRadiusKm: 5.0,
+      isOpen: true,
+    });
   }
   return shop;
 };
 
 /**
- * Get shop by ID (Public / Customer)
- * @param {ObjectId} id
- * @returns {Promise<Shop>}
+ * Get shop by ID
  */
 const getShopById = async (id) => {
-  const shop = await Shop.findById(id).populate('owner', 'name phoneNumber');
+  const shop = await Shop.findById(id);
   if (!shop) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Shop not found');
   }
@@ -59,31 +62,63 @@ const getShopById = async (id) => {
 };
 
 /**
- * Query shops (for customers to browse nearby / active shops)
- * @param {Object} filter
- * @param {Object} options
- * @returns {Promise<QueryResult>}
+ * Update shop by ID
  */
-const queryShops = async (filter, options) => {
-  return Shop.paginate(filter, options);
-};
-
-/**
- * Toggle shop open / closed status
- * @param {ObjectId} ownerId
- * @returns {Promise<Shop>}
- */
-const toggleShopStatus = async (ownerId) => {
-  const shop = await getShopByOwner(ownerId);
-  shop.isOpen = !shop.isOpen;
+const updateShop = async (shopId, updateBody, ownerId) => {
+  const shop = await getShopById(shopId);
+  if (ownerId && shop.ownerId.toString() !== ownerId.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: You do not own this shop');
+  }
+  Object.assign(shop, updateBody);
   await shop.save();
   return shop;
 };
 
+/**
+ * Geo-Radius Discovery Formula:
+ * Find shops whose deliveryRadiusKm circle covers the customer's coordinates.
+ */
+const getNearbyShops = async (lng, lat) => {
+  try {
+    if (lng !== undefined && lat !== undefined && !isNaN(parseFloat(lng)) && !isNaN(parseFloat(lat))) {
+      const longitude = parseFloat(lng);
+      const latitude = parseFloat(lat);
+
+      const shops = await Shop.aggregate([
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: [longitude, latitude] },
+            distanceField: 'distanceMeters',
+            spherical: true,
+          },
+        },
+        {
+          $match: {
+            isOpen: true,
+            $expr: {
+              $lte: ['$distanceMeters', { $multiply: ['$deliveryRadiusKm', 1000] }],
+            },
+          },
+        },
+      ]);
+
+      if (shops.length > 0) {
+        return shops;
+      }
+    }
+  } catch (e) {
+    // Fallback if geo index not yet built
+  }
+
+  // Fallback: return open shops
+  return Shop.find({ isOpen: true }).limit(20);
+};
+
 module.exports = {
-  createOrUpdateShop,
+  createShop,
   getShopByOwner,
+  ensureShopForDukandar,
   getShopById,
-  queryShops,
-  toggleShopStatus,
+  updateShop,
+  getNearbyShops,
 };

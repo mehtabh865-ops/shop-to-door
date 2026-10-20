@@ -50,31 +50,17 @@ if (config.env === 'production') {
   app.use('/v1/auth', authLimiter);
 }
 
-// Healthcheck endpoint for Render / cloud monitoring
+// root health check
 app.get('/', (req, res) => {
-  res.status(200).json({
+  res.status(httpStatus.OK).json({
     status: 'online',
-    service: 'Shop to Door Backend REST API',
-    version: '1.0.0',
-    uptime: Math.floor(process.uptime()),
+    service: 'Shop to Door Unified Engine',
     timestamp: new Date().toISOString(),
   });
 });
 
 // v1 api routes
 app.use('/v1', routes);
-
-// Serve frontend static build if available
-const path = require('path');
-const fs = require('fs');
-const frontendDist = path.join(__dirname, '../../frontend/dist');
-if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
-  app.get('*', (req, res, next) => {
-    if (req.url.startsWith('/v1')) return next();
-    res.sendFile(path.join(frontendDist, 'index.html'));
-  });
-}
 
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {

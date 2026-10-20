@@ -1,78 +1,59 @@
 const mongoose = require('mongoose');
 const { toJSON, paginate } = require('./plugins');
 
-const shopCategories = [
-  'grocery',
-  'dairy',
-  'fruits_vegetables',
-  'pharmacy',
-  'fashion',
-  'electronics',
-  'bakery',
-  'restaurant',
-  'hardware',
-  'general',
-];
-
 const shopSchema = mongoose.Schema(
   {
+    ownerId: {
+      type: mongoose.SchemaTypes.ObjectId,
+      ref: 'User',
+      index: true,
+    },
     owner: {
       type: mongoose.SchemaTypes.ObjectId,
       ref: 'User',
-      required: true,
-      unique: true,
       index: true,
     },
     name: {
       type: String,
-      required: true,
       trim: true,
     },
-    category: {
+    shopName: {
       type: String,
-      enum: shopCategories,
-      default: 'general',
+      trim: true,
     },
     description: {
       type: String,
-      default: '',
-    },
-    image: {
-      type: String,
+      trim: true,
       default: '',
     },
     phone: {
       type: String,
       trim: true,
-      default: '',
     },
     address: {
-      street: { type: String, default: '' },
-      landmark: { type: String, default: '' },
-      city: { type: String, default: '' },
-      state: { type: String, default: '' },
-      pincode: { type: String, default: '' },
-      coordinates: {
-        lat: { type: Number, default: 0 },
-        lng: { type: Number, default: 0 },
+      type: String,
+      trim: true,
+      default: '',
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
       },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: true,
+        default: [77.209, 28.6139],
+      },
+    },
+    deliveryRadiusKm: {
+      type: Number,
+      default: 3.5, // e.g. 3.5 km circular operating radius
     },
     isOpen: {
       type: Boolean,
       default: true,
-      index: true,
-    },
-    deliveryRadiusKm: {
-      type: Number,
-      default: 5,
-    },
-    minimumOrder: {
-      type: Number,
-      default: 0,
-    },
-    rating: {
-      type: Number,
-      default: 5.0,
     },
   },
   {
@@ -83,7 +64,17 @@ const shopSchema = mongoose.Schema(
 shopSchema.plugin(toJSON);
 shopSchema.plugin(paginate);
 
+// 2dsphere index for Geo-Radius discovery
+shopSchema.index({ location: '2dsphere' });
+
+shopSchema.pre('save', function (next) {
+  if (!this.shopName && this.name) this.shopName = this.name;
+  if (!this.name && this.shopName) this.name = this.shopName;
+  if (!this.ownerId && this.owner) this.ownerId = this.owner;
+  if (!this.owner && this.ownerId) this.owner = this.ownerId;
+  next();
+});
+
 const Shop = mongoose.model('Shop', shopSchema);
 
 module.exports = Shop;
-module.exports.shopCategories = shopCategories;

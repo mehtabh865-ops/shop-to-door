@@ -3,99 +3,105 @@ const { Product, Shop } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Add a new product (Strictly scoped to logged in Dukandar)
- * @param {ObjectId} ownerId
- * @param {Object} productBody
- * @returns {Promise<Product>}
+ * Create a new product for dukandar's shop
  */
-const createProduct = async (ownerId, productBody) => {
-  const shop = await Shop.findOne({ owner: ownerId });
-  if (!shop) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Please create your shop profile before adding products');
-  }
-
-  const product = await Product.create({
-    ...productBody,
-    shop: shop._id,
-    owner: ownerId,
+const createProduct = async (user, productBody) => {
+  const shop = await Shop.findOne({
+    $or: [{ owner: user._id || user.id }, { ownerId: user._id || user.id }],
   });
-  return product;
-};
-
-/**
- * Get products for a specific shop (Customer View)
- * @param {ObjectId} shopId
- * @param {Object} filter
- * @param {Object} options
- * @returns {Promise<QueryResult>}
- */
-const getShopProducts = async (shopId, filter = {}, options = {}) => {
-  const finalFilter = { ...filter, shop: shopId };
-  return Product.paginate(finalFilter, options);
-};
-
-/**
- * Get products belonging to the logged in Dukandar (Multi-Tenant Isolation)
- * @param {ObjectId} ownerId
- * @param {Object} filter
- * @param {Object} options
- * @returns {Promise<QueryResult>}
- */
-const getMyProducts = async (ownerId, filter = {}, options = {}) => {
-  const finalFilter = { ...filter, owner: ownerId };
-  return Product.paginate(finalFilter, options);
-};
-
-/**
- * Get single product by ID
- * @param {ObjectId} productId
- * @returns {Promise<Product>}
- */
-const getProductById = async (productId) => {
-  const product = await Product.findById(productId).populate('shop', 'name isOpen');
-  if (!product) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');
+  if (!shop) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'You must have an active shop to add products');
   }
-  return product;
+
+  return Product.create({
+    shopId: shop._id,
+    shop: shop._id,
+    owner: user._id || user.id,
+    name: productBody.name,
+    category: productBody.category || 'General',
+    price: productBody.price,
+    mrp: productBody.mrp || productBody.price,
+    unit: productBody.unit || '1 unit',
+    stock: productBody.stock !== undefined ? productBody.stock : 100,
+    isAvailable: productBody.isAvailable !== undefined ? productBody.isAvailable : true,
+    imageUrl: productBody.imageUrl || '',
+  });
 };
 
 /**
- * Update product (Ensures ONLY the owner can update their own product)
- * @param {ObjectId} ownerId
- * @param {ObjectId} productId
- * @param {Object} updateBody
- * @returns {Promise<Product>}
+ * Get products for a shop (Customer & Dukandar catalog view)
  */
-const updateProduct = async (ownerId, productId, updateBody) => {
-  const product = await Product.findOne({ _id: productId, owner: ownerId });
-  if (!product) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found or you do not have permission to edit it');
+const getProductsByShopId = async (shopId, category) => {
+  const filter = {
+    $or: [{ shop: shopId }, { shopId: shopId }],
+    isAvailable: true,
+  };
+  if (category && category !== 'All') {
+    filter.category = category;
   }
+  return Product.find(filter).sort({ createdAt: -1 });
+};
+
+/**
+ * Get all products for dukandar's own shop (including out-of-stock)
+ */
+const getMyProducts = async (user) => {
+  const shop = await Shop.findOne({
+    $or: [{ owner: user._id || user.id }, { ownerId: user._id || user.id }],
+  });
+  if (!shop) {
+    return [];
+  }
+  return Product.find({
+    $or: [{ shop: shop._id }, { shopId: shop._id }],
+  }).sort({ createdAt: -1 });
+};
+
+/**
+ * Update a product (Strictly restricted to shop owner)
+ */
+const updateProduct = async (user, productId, updateBody) => {
+  const shop = await Shop.findOne({ ownerId: user._id || user.id });
+  if (!shop) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Shop not found');
+  }
+
+  const product = await Product.findOne({ _id: productId, shopId: shop._id });
+  if (!product) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found or you do not own it');
+  }
+
   Object.assign(product, updateBody);
   await product.save();
   return product;
 };
 
 /**
- * Delete product (Ensures ONLY the owner can delete their own product)
- * @param {ObjectId} ownerId
- * @param {ObjectId} productId
- * @returns {Promise<Product>}
+ * Delete a product (Strictly restricted to shop owner)
  */
-const deleteProduct = async (ownerId, productId) => {
-  const product = await Product.findOne({ _id: productId, owner: ownerId });
-  if (!product) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found or you do not have permission to delete it');
+const deleteProduct = async (user, productId) => {
+  const shop = await Shop.findOne({ ownerId: user._id || user.id });
+  if (!shop) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Shop not found');
   }
-  await product.deleteOne();
+
+  const product = await Product.findOne({ _id: productId, shopId: shop._id });
+  if (!product) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Product not found or you do not own it');
+  }
+
+  if (product.deleteOne) {
+    await product.deleteOne();
+  } else {
+    await product.remove();
+  }
   return product;
 };
 
 module.exports = {
   createProduct,
-  getShopProducts,
+  getProductsByShopId,
   getMyProducts,
-  getProductById,
   updateProduct,
   deleteProduct,
 };

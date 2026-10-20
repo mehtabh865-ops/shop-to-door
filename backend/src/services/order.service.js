@@ -1,159 +1,118 @@
 const httpStatus = require('http-status');
-const { Order, Shop, Product } = require('../models');
+const { Order, Shop } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Place a new hyperlocal order (Customer action)
- * @param {ObjectId} customerId
- * @param {Object} orderBody
- * @returns {Promise<Order>}
+ * Place a new order (Customer action)
  */
-const createOrder = async (customerId, orderBody) => {
-  const { shopId, items, deliveryAddress, paymentMethod } = orderBody;
-
-  // 1. Verify Shop exists and is open
-  const shop = await Shop.findById(shopId);
-  if (!shop) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Selected shop not found');
-  }
-  if (!shop.isOpen) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'This shop is currently closed. Please order from an open shop.');
+const createOrder = async (user, orderBody) => {
+  if (!orderBody.shopId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Shop ID is required to place an order');
   }
 
-  // 2. Validate items & calculate totals
-  let calculatedTotal = 0;
-  const verifiedItems = [];
-
-  for (const item of items) {
-    const product = await Product.findOne({ _id: item.productId, shop: shopId });
-    if (!product) {
-      throw new ApiError(httpStatus.BAD_REQUEST, `Product not found or does not belong to this shop: ${item.productId}`);
-    }
-    if (!product.isAvailable || product.stock < item.quantity) {
-      throw new ApiError(httpStatus.BAD_REQUEST, `Product ${product.name} is currently out of stock`);
-    }
-
-    const itemTotal = product.price * item.quantity;
-    calculatedTotal += itemTotal;
-
-    verifiedItems.push({
-      product: product._id,
-      name: product.name,
-      price: product.price,
-      quantity: item.quantity,
-      unit: product.unit,
-      totalPrice: itemTotal,
-    });
+  const shop = await Shop.findById(orderBody.shopId);
+  if (!shop || !shop.isOpen) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'This shop is currently not accepting orders');
   }
 
-  if (shop.minimumOrder && calculatedTotal < shop.minimumOrder) {
-    throw new ApiError(httpStatus.BAD_REQUEST, `Minimum order amount for this shop is Rs. ${shop.minimumOrder}`);
-  }
-
-  // 3. Generate unique order number
-  const orderNumber = `STD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+  // Generate random 4-digit secure delivery OTP
+  const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+  const orderNumber = 'STD-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
 
   const order = await Order.create({
     orderNumber,
-    customer: customerId,
+    customerId: user._id || user.id,
+    customer: user._id || user.id,
+    customerName: user.name || 'Customer',
+    customerPhone: user.phone || orderBody.customerPhone || '',
+    shopId: shop._id,
     shop: shop._id,
-    items: verifiedItems,
-    totalAmount: calculatedTotal,
-    deliveryAddress,
-    paymentMethod: paymentMethod || 'cod',
-    status: 'placed',
+    items: orderBody.items || [],
+    totalAmount: orderBody.totalAmount,
+    deliveryOtp,
+    status: 'pending',
+    deliveryAddress: orderBody.deliveryAddress || 'Customer Doorstep',
   });
 
   return order;
 };
 
 /**
- * Get customer's orders (Strictly filtered by logged-in customer)
- * @param {ObjectId} customerId
- * @param {Object} filter
- * @param {Object} options
- * @returns {Promise<QueryResult>}
+ * Get customer orders (Customer sees their own orders across all shops)
  */
-const getCustomerOrders = async (customerId, filter = {}, options = {}) => {
-  const finalFilter = { ...filter, customer: customerId };
-  return Order.paginate(finalFilter, {
-    ...options,
-    populate: 'shop',
-    sortBy: options.sortBy || 'createdAt:desc',
-  });
+const getCustomerOrders = async (user) => {
+  const userId = user._id || user.id;
+  return Order.find({
+    $or: [{ customerId: userId }, { customer: userId }],
+  })
+    .populate('shopId', 'shopName address phone')
+    .sort({ createdAt: -1 });
 };
 
 /**
- * Get Dukandar's shop orders (Strictly filtered by Dukandar's shop)
- * @param {ObjectId} ownerId
- * @param {Object} filter
- * @param {Object} options
- * @returns {Promise<QueryResult>}
+ * Get dukandar orders (Strict isolation: Dukandar sees ONLY their shop's orders)
  */
-const getShopOrders = async (ownerId, filter = {}, options = {}) => {
-  const shop = await Shop.findOne({ owner: ownerId });
+const getDukandarOrders = async (user) => {
+  const shop = await Shop.findOne({
+    $or: [{ ownerId: user._id || user.id }, { owner: user._id || user.id }],
+  });
   if (!shop) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Shop profile not found');
+    return [];
   }
 
-  const finalFilter = { ...filter, shop: shop._id };
-  return Order.paginate(finalFilter, {
-    ...options,
-    populate: 'customer',
-    sortBy: options.sortBy || 'createdAt:desc',
-  });
+  return Order.find({
+    $or: [{ shopId: shop._id }, { shop: shop._id }],
+  }).sort({ createdAt: -1 });
 };
 
 /**
- * Update order status (Dukandar action, strictly isolated to their own shop)
- * @param {ObjectId} ownerId
- * @param {ObjectId} orderId
- * @param {string} newStatus
- * @returns {Promise<Order>}
+ * Update order status by dukandar
  */
-const updateOrderStatus = async (ownerId, orderId, newStatus) => {
-  const shop = await Shop.findOne({ owner: ownerId });
+const updateOrderStatus = async (user, orderId, status) => {
+  const shop = await Shop.findOne({
+    $or: [{ ownerId: user._id || user.id }, { owner: user._id || user.id }],
+  });
   if (!shop) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Shop profile not found');
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Shop not found');
   }
 
-  const order = await Order.findOne({ _id: orderId, shop: shop._id });
+  const order = await Order.findOne({
+    _id: orderId,
+    $or: [{ shopId: shop._id }, { shop: shop._id }],
+  });
   if (!order) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Order not found for your shop');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
   }
 
-  order.status = newStatus;
-  if (newStatus === 'delivered') {
-    order.paymentStatus = 'paid';
-  }
+  order.status = status;
   await order.save();
   return order;
 };
 
 /**
- * Verify customer OTP on delivery
- * @param {ObjectId} ownerId
- * @param {ObjectId} orderId
- * @param {string} otp
- * @returns {Promise<Order>}
+ * Verify delivery OTP at doorstep (Strict Dukandar action)
  */
-const verifyDeliveryOtp = async (ownerId, orderId, otp) => {
-  const shop = await Shop.findOne({ owner: ownerId });
+const verifyDeliveryOtp = async (user, orderId, inputOtp) => {
+  const shop = await Shop.findOne({
+    $or: [{ ownerId: user._id || user.id }, { owner: user._id || user.id }],
+  });
   if (!shop) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Shop profile not found');
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Shop not found');
   }
 
-  const order = await Order.findOne({ _id: orderId, shop: shop._id });
+  const order = await Order.findOne({
+    _id: orderId,
+    $or: [{ shopId: shop._id }, { shop: shop._id }],
+  });
   if (!order) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Order not found for your shop');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
   }
 
-  if (order.deliveryOtp !== otp) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid delivery OTP');
+  if (order.deliveryOtp !== inputOtp.toString().trim()) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Galat OTP! Kripya customer se sahi 4-digit OTP lein.');
   }
 
   order.status = 'delivered';
-  order.paymentStatus = 'paid';
   await order.save();
   return order;
 };
@@ -161,7 +120,7 @@ const verifyDeliveryOtp = async (ownerId, orderId, otp) => {
 module.exports = {
   createOrder,
   getCustomerOrders,
-  getShopOrders,
+  getDukandarOrders,
   updateOrderStatus,
   verifyDeliveryOtp,
 };

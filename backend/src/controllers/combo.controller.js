@@ -1,41 +1,31 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const pick = require('../utils/pick');
 const { comboService } = require('../services');
 
-const createCombo = catchAsync(async (req, res) => {
-  const combo = await comboService.createCombo(req.user.id, req.body);
-  res.status(httpStatus.CREATED).send(combo);
+const getCombos = catchAsync(async (req, res) => {
+  const { shopId } = req.query;
+  const combos = await comboService.getCombosByShopId(shopId);
+  res.send(combos);
 });
 
 const getMyCombos = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['isAvailable']);
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  const result = await comboService.getMyCombos(req.user.id, filter, options);
-  res.send(result);
+  const combos = await comboService.getMyCombos(req.user);
+  res.send(combos);
 });
 
-const getShopCombos = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['isAvailable']);
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  const result = await comboService.getShopCombos(req.params.shopId, filter, options);
-  res.send(result);
-});
-
-const updateCombo = catchAsync(async (req, res) => {
-  const combo = await comboService.updateCombo(req.user.id, req.params.comboId, req.body);
-  res.send(combo);
+const createCombo = catchAsync(async (req, res) => {
+  const combo = await comboService.createCombo(req.user, req.body);
+  res.status(httpStatus.CREATED).send(combo);
 });
 
 const deleteCombo = catchAsync(async (req, res) => {
-  await comboService.deleteCombo(req.user.id, req.params.comboId);
-  res.status(httpStatus.NO_CONTENT).send();
+  const combo = await comboService.deleteCombo(req.user, req.params.comboId);
+  res.send(combo);
 });
 
 module.exports = {
-  createCombo,
+  getCombos,
   getMyCombos,
-  getShopCombos,
-  updateCombo,
+  createCombo,
   deleteCombo,
 };

@@ -3,9 +3,9 @@ const authRoute = require('./auth.route');
 const userRoute = require('./user.route');
 const shopRoute = require('./shop.route');
 const productRoute = require('./product.route');
-const orderRoute = require('./order.route');
 const comboRoute = require('./combo.route');
 const couponRoute = require('./coupon.route');
+const orderRoute = require('./order.route');
 const docsRoute = require('./docs.route');
 const config = require('../../config/config');
 
@@ -29,10 +29,6 @@ const defaultRoutes = [
     route: productRoute,
   },
   {
-    path: '/orders',
-    route: orderRoute,
-  },
-  {
     path: '/combos',
     route: comboRoute,
   },
@@ -40,9 +36,14 @@ const defaultRoutes = [
     path: '/coupons',
     route: couponRoute,
   },
+  {
+    path: '/orders',
+    route: orderRoute,
+  },
 ];
 
 const devRoutes = [
+  // routes available only in development mode
   {
     path: '/docs',
     route: docsRoute,
