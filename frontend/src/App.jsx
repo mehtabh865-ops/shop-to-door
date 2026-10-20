@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ShoppingBag,
   Store,
@@ -14,14 +14,11 @@ import {
   Truck,
   Box,
   KeyRound,
-  ShieldCheck,
   Power,
   ChevronRight,
   ArrowRight,
   Sparkles,
   SlidersHorizontal,
-  Bell,
-  Heart,
   Star,
   Milk,
   Apple,
@@ -30,11 +27,9 @@ import {
   Smartphone,
   Coffee,
   CheckCircle2,
-  Clock,
-  LogOut
+  Clock
 } from 'lucide-react';
 
-// Default mock hyperlocal shops for immediate offline/standalone demo
 const INITIAL_SHOPS = [
   {
     id: 'shop-1',
@@ -95,15 +90,12 @@ const INITIAL_SHOPS = [
 
 export default function App() {
   const [role, setRole] = useState('customer'); // 'customer' | 'dukandar'
-  const [activeTab, setActiveTab] = useState('explore'); // explore | orders | cart | profile
+  const [activeTab, setActiveTab] = useState('explore');
   const [selectedShop, setSelectedShop] = useState(INITIAL_SHOPS[0]);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [cart, setCart] = useState({}); // { productId: { product, quantity, shopId } }
+  const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeOrder, setActiveOrder] = useState(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [userToken, setUserToken] = useState(localStorage.getItem('std_token') || null);
-  const [userPhone, setUserPhone] = useState('');
 
   // Dukandar state
   const [dukandarShop, setDukandarShop] = useState({
@@ -116,7 +108,7 @@ export default function App() {
         orderNumber: 'STD-892',
         items: [{ name: 'Wheat Flour', qty: 2, price: 240 }, { name: 'Fresh Milk', qty: 1, price: 65 }],
         total: 545,
-        status: 'placed', // placed -> accepted -> packing -> out_for_delivery -> delivered
+        status: 'placed',
         otp: '4821',
         time: 'Just now',
       },
@@ -134,7 +126,6 @@ export default function App() {
 
   const [otpInput, setOtpInput] = useState('');
 
-  // Cart actions
   const addToCart = (product, shopId) => {
     setCart((prev) => {
       const existing = prev[product.id];
@@ -159,7 +150,6 @@ export default function App() {
   const cartTotalItems = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
   const cartTotalPrice = Object.values(cart).reduce((sum, item) => sum + item.quantity * item.product.price, 0);
 
-  // Place order
   const handleCheckout = () => {
     const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
     const newOrder = {
@@ -176,7 +166,6 @@ export default function App() {
     setIsCartOpen(false);
     setActiveTab('orders');
 
-    // Also inject into Dukandar's live queue if same shop
     setDukandarShop((prev) => ({
       ...prev,
       revenue: prev.revenue + cartTotalPrice,
@@ -184,7 +173,6 @@ export default function App() {
     }));
   };
 
-  // Dukandar status transition
   const handleUpdateStatus = (orderId, nextStatus) => {
     setDukandarShop((prev) => ({
       ...prev,
@@ -216,21 +204,21 @@ export default function App() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#090a0f] text-slate-100 max-w-md mx-auto shadow-2xl relative select-none pb-24">
-      {/* Top Floating Glass Navigation Header */}
-      <header className="sticky top-0 z-30 px-4 py-3 flex items-center justify-between glass border-b border-white/5">
+    <div className="flex flex-col min-h-screen bg-[#f8fafc] text-slate-900 max-w-md mx-auto shadow-xl relative select-none pb-24">
+      {/* Light Mode Clean Top Header */}
+      <header className="sticky top-0 z-30 px-4 py-3.5 flex items-center justify-between bg-white/90 backdrop-blur-md border-b border-slate-200/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 active:scale-95 transition-transform">
+          <div className="w-9 h-9 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 active:scale-95 transition-transform">
             <ShoppingBag className="w-5 h-5 text-white" strokeWidth={2.2} />
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
-            <MapPin className="w-3.5 h-3.5 text-sky-400" />
-            <span className="font-medium text-slate-200">Hyperlocal</span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200/60">
+            <MapPin className="w-3.5 h-3.5 text-blue-600" />
+            <span className="font-medium text-slate-800">Hyperlocal</span>
           </div>
         </div>
 
-        {/* Role Toggle Switch: Customer Icon vs Dukandar Icon */}
-        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10">
+        {/* Role Toggle Switch: Customer vs Dukandar */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
           <button
             onClick={() => {
               setRole('customer');
@@ -238,8 +226,8 @@ export default function App() {
             }}
             className={`p-2 rounded-xl transition-all duration-300 ${
               role === 'customer'
-                ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-blue-600 shadow-sm font-semibold'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             <User className="w-4 h-4" strokeWidth={2.2} />
@@ -251,8 +239,8 @@ export default function App() {
             }}
             className={`p-2 rounded-xl transition-all duration-300 ${
               role === 'dukandar'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 font-semibold'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             <Store className="w-4 h-4" strokeWidth={2.2} />
@@ -260,21 +248,21 @@ export default function App() {
         </div>
       </header>
 
-      {/* CUSTOMER STOREFRONT VIEW */}
+      {/* CUSTOMER STOREFRONT VIEW (LIGHT THEME) */}
       {role === 'customer' && (
-        <main className="flex-1 px-4 pt-3 space-y-5 animate-fadeIn">
-          {/* Minimalist Search Bar with Line Icon */}
+        <main className="flex-1 px-4 pt-3.5 space-y-5 animate-fadeIn">
+          {/* Clean White Search Bar */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" strokeWidth={2} />
+            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" strokeWidth={2} />
             <input
               type="text"
               placeholder="Search local stores & items..."
-              className="w-full bg-[#12141c] border border-white/5 rounded-2xl py-2.5 pl-10 pr-10 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 transition-colors"
+              className="w-full bg-white border border-slate-200 rounded-2xl py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 shadow-sm transition-colors"
             />
-            <SlidersHorizontal className="w-4 h-4 absolute right-3.5 top-3.5 text-slate-500" strokeWidth={2} />
+            <SlidersHorizontal className="w-4 h-4 absolute right-3.5 top-3.5 text-slate-400" strokeWidth={2} />
           </div>
 
-          {/* Icon-Only Category Strip */}
+          {/* Clean Light Category Strip */}
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
             {categoryIcons.map((cat) => {
               const IconComp = cat.icon;
@@ -285,8 +273,8 @@ export default function App() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`w-12 h-12 flex-shrink-0 rounded-2xl flex items-center justify-center transition-all duration-200 active:scale-90 ${
                     isSelected
-                      ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25 border-0'
-                      : 'glass text-slate-400 hover:text-slate-200'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 border-0'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm'
                   }`}
                 >
                   <IconComp className="w-5 h-5" strokeWidth={2} />
@@ -295,43 +283,43 @@ export default function App() {
             })}
           </div>
 
-          {/* Active Order Live Tracker Banner (If customer placed order) */}
+          {/* Active Order Live Tracker Banner (Light Mode) */}
           {activeOrder && (
-            <div className="glass-card p-3.5 rounded-2xl border-l-4 border-l-sky-500 flex items-center justify-between">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-blue-600 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                   {activeOrder.status === 'delivered' ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   ) : activeOrder.status === 'out_for_delivery' ? (
-                    <Truck className="w-5 h-5 text-sky-400 animate-bounce" />
+                    <Truck className="w-5 h-5 text-blue-600 animate-bounce" />
                   ) : (
-                    <Clock className="w-5 h-5 text-amber-400" />
+                    <Clock className="w-5 h-5 text-amber-500" />
                   )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                       {activeOrder.orderNumber}
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-slate-300 capitalize">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 capitalize font-medium">
                       {activeOrder.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-sky-400 mt-0.5">
+                  <div className="flex items-center gap-1.5 text-xs text-blue-600 font-bold mt-0.5">
                     <KeyRound className="w-3 h-3" />
                     <span className="font-mono tracking-widest">{activeOrder.otp}</span>
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-500" />
+              <ChevronRight className="w-5 h-5 text-slate-400" />
             </div>
           )}
 
-          {/* Nearby Local Stores Strip */}
+          {/* Nearby Local Stores Strip (Light Theme) */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Local Stores</span>
-              <span className="text-xs text-sky-400">{INITIAL_SHOPS.length} Available</span>
+              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Local Stores</span>
+              <span className="text-xs font-semibold text-blue-600">{INITIAL_SHOPS.length} Available</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {INITIAL_SHOPS.map((shop) => {
@@ -341,25 +329,27 @@ export default function App() {
                   <div
                     key={shop.id}
                     onClick={() => setSelectedShop(shop)}
-                    className={`p-3.5 rounded-2xl glass transition-all duration-200 active:scale-95 cursor-pointer relative overflow-hidden ${
-                      isSelected ? 'border-sky-500/60 shadow-lg shadow-sky-500/10 bg-[#161a28]' : ''
+                    className={`p-3.5 rounded-2xl bg-white border transition-all duration-200 active:scale-95 cursor-pointer relative shadow-sm ${
+                      isSelected
+                        ? 'border-blue-600 ring-2 ring-blue-600/10 shadow-md'
+                        : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-sky-400">
+                    <div className="flex items-start justify-between mb-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-blue-600">
                         <ShopIcon className="w-5 h-5" strokeWidth={1.8} />
                       </div>
                       <div
                         className={`w-2 h-2 rounded-full ${
-                          shop.isOpen ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-rose-500'
+                          shop.isOpen ? 'bg-emerald-500 shadow-sm shadow-emerald-500' : 'bg-rose-500'
                         }`}
                       />
                     </div>
-                    <div className="font-medium text-sm text-slate-200 truncate">{shop.name}</div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <div className="font-semibold text-sm text-slate-900 truncate">{shop.name}</div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
                       <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        <span>{shop.rating}</span>
+                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        <span className="font-medium text-slate-700">{shop.rating}</span>
                       </div>
                       <span>{shop.distance}</span>
                     </div>
@@ -369,20 +359,20 @@ export default function App() {
             </div>
           </div>
 
-          {/* Shop Catalog (Products) */}
+          {/* Shop Catalog (Products - Light Theme) */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">{selectedShop.name}</span>
+                <span className="text-xs font-bold tracking-wider text-slate-600 uppercase">{selectedShop.name}</span>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    selectedShop.isOpen ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    selectedShop.isOpen ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
                   }`}
                 >
                   {selectedShop.isOpen ? 'Open' : 'Closed'}
                 </span>
               </div>
-              <span className="text-xs text-slate-400">{selectedShop.products.length} Items</span>
+              <span className="text-xs text-slate-500">{selectedShop.products.length} Items</span>
             </div>
 
             <div className="space-y-2.5">
@@ -394,35 +384,35 @@ export default function App() {
                 return (
                   <div
                     key={product.id}
-                    className="p-3 rounded-2xl glass flex items-center justify-between active:scale-[0.99] transition-transform"
+                    className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between active:scale-[0.99] transition-transform"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-slate-300">
+                      <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600">
                         <ProdIcon className="w-6 h-6" strokeWidth={1.7} />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-slate-200">{product.name}</div>
+                        <div className="text-sm font-semibold text-slate-900">{product.name}</div>
                         <div className="text-xs text-slate-500">{product.unit}</div>
-                        <div className="text-xs font-bold text-sky-400 mt-0.5">₹{product.price}</div>
+                        <div className="text-xs font-bold text-blue-600 mt-0.5">₹{product.price}</div>
                       </div>
                     </div>
 
                     {/* Quantity Selector: Minus / Plus Line Icons */}
-                    <div className="flex items-center gap-2 bg-[#0d0f17] px-2 py-1.5 rounded-xl border border-white/5">
+                    <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
                       {qty > 0 && (
                         <>
                           <button
                             onClick={() => removeFromCart(product.id)}
-                            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 active:scale-90"
+                            className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-700 active:scale-90"
                           >
                             <Minus className="w-3.5 h-3.5" strokeWidth={2.5} />
                           </button>
-                          <span className="font-semibold text-xs text-slate-200 w-4 text-center">{qty}</span>
+                          <span className="font-bold text-xs text-slate-800 w-4 text-center">{qty}</span>
                         </>
                       )}
                       <button
                         onClick={() => addToCart(product, selectedShop.id)}
-                        className="w-7 h-7 rounded-lg bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center active:scale-90 shadow-md shadow-sky-500/20"
+                        className="w-7 h-7 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center active:scale-90 shadow-md shadow-blue-600/20"
                       >
                         <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
                       </button>
@@ -435,15 +425,15 @@ export default function App() {
         </main>
       )}
 
-      {/* DUKANDAR (STORE OWNER) DASHBOARD VIEW */}
+      {/* DUKANDAR DASHBOARD VIEW (LIGHT THEME) */}
       {role === 'dukandar' && (
-        <main className="flex-1 px-4 pt-3 space-y-5 animate-fadeIn">
+        <main className="flex-1 px-4 pt-3.5 space-y-5 animate-fadeIn">
           {/* Dukandar Header & Live 1-Tap Power Switch */}
-          <div className="p-4 rounded-3xl glass-card relative overflow-hidden border border-white/10">
+          <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs uppercase tracking-wider text-indigo-400 font-semibold">Store Dashboard</div>
-                <div className="text-lg font-bold text-slate-100 mt-0.5">{dukandarShop.name}</div>
+                <div className="text-xs uppercase tracking-wider text-blue-600 font-bold">Store Dashboard</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">{dukandarShop.name}</div>
               </div>
               {/* 1-Tap Open / Close Switch */}
               <button
@@ -453,10 +443,10 @@ export default function App() {
                     isOpen: !prev.isOpen,
                   }))
                 }
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl transition-all duration-300 active:scale-90 shadow-lg ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl transition-all duration-300 active:scale-90 shadow-sm ${
                   dukandarShop.isOpen
                     ? 'bg-emerald-500 text-white shadow-emerald-500/20'
-                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    : 'bg-rose-50 text-rose-600 border border-rose-200'
                 }`}
               >
                 <Power className="w-4 h-4" strokeWidth={2.5} />
@@ -465,14 +455,14 @@ export default function App() {
             </div>
 
             {/* Quick Stats Tiles */}
-            <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/5">
-              <div className="bg-white/5 p-3 rounded-2xl">
-                <div className="text-[11px] text-slate-400">Total Sales</div>
-                <div className="text-base font-bold text-slate-100 mt-0.5">₹{dukandarShop.revenue}</div>
+            <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-100">
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <div className="text-[11px] text-slate-500 font-medium">Total Sales</div>
+                <div className="text-base font-bold text-slate-900 mt-0.5">₹{dukandarShop.revenue}</div>
               </div>
-              <div className="bg-white/5 p-3 rounded-2xl">
-                <div className="text-[11px] text-slate-400">Active Orders</div>
-                <div className="text-base font-bold text-indigo-400 mt-0.5">{dukandarShop.orders.length}</div>
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <div className="text-[11px] text-slate-500 font-medium">Active Orders</div>
+                <div className="text-base font-bold text-blue-600 mt-0.5">{dukandarShop.orders.length}</div>
               </div>
             </div>
           </div>
@@ -480,52 +470,52 @@ export default function App() {
           {/* Incoming Orders Queue */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Incoming Dispatch Orders</span>
-              <span className="text-xs text-indigo-400">Realtime</span>
+              <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">Incoming Dispatch Orders</span>
+              <span className="text-xs font-semibold text-blue-600">Realtime</span>
             </div>
 
             <div className="space-y-3">
               {dukandarShop.orders.map((ord) => (
-                <div key={ord.id} className="p-4 rounded-2xl glass border border-white/5 space-y-3">
+                <div key={ord.id} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-200">{ord.orderNumber}</span>
-                      <span className="text-[10px] text-slate-500">{ord.time}</span>
+                      <span className="font-mono text-xs font-bold text-slate-900">{ord.orderNumber}</span>
+                      <span className="text-[10px] text-slate-400">{ord.time}</span>
                     </div>
                     <span
-                      className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase ${
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
                         ord.status === 'delivered'
-                          ? 'bg-emerald-500/10 text-emerald-400'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : ord.status === 'out_for_delivery'
-                          ? 'bg-sky-500/10 text-sky-400'
-                          : 'bg-amber-500/10 text-amber-400'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}
                     >
                       {ord.status.replace('_', ' ')}
                     </span>
                   </div>
 
-                  <div className="text-xs text-slate-400 space-y-1">
+                  <div className="text-xs text-slate-600 space-y-1">
                     {ord.items.map((it, idx) => (
                       <div key={idx} className="flex justify-between">
                         <span>
                           {it.name} x {it.qty}
                         </span>
-                        <span>₹{it.price * it.qty}</span>
+                        <span className="font-medium text-slate-800">₹{it.price * it.qty}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
-                    <span className="text-slate-400">Amount Due</span>
-                    <span className="font-bold text-slate-100">₹{ord.total}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <span className="text-slate-500 font-medium">Amount Due</span>
+                    <span className="font-bold text-slate-900">₹{ord.total}</span>
                   </div>
 
                   {/* Order State Transition Actions */}
                   {ord.status === 'placed' && (
                     <button
                       onClick={() => handleUpdateStatus(ord.id, 'packing')}
-                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-indigo-600/20"
+                      className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-blue-600/20"
                     >
                       <Box className="w-4 h-4" />
                       <span>Pack Order</span>
@@ -535,7 +525,7 @@ export default function App() {
                   {ord.status === 'packing' && (
                     <button
                       onClick={() => handleUpdateStatus(ord.id, 'out_for_delivery')}
-                      className="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-sky-500/20"
+                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-indigo-600/20"
                     >
                       <Truck className="w-4 h-4" />
                       <span>Dispatch for Delivery</span>
@@ -550,7 +540,7 @@ export default function App() {
                         placeholder="Customer OTP"
                         value={otpInput}
                         onChange={(e) => setOtpInput(e.target.value)}
-                        className="flex-1 bg-[#12141c] border border-white/10 rounded-xl px-3 py-2 text-xs text-center font-mono tracking-widest text-slate-100 focus:outline-none focus:border-emerald-500"
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-center font-mono tracking-widest text-slate-900 focus:outline-none focus:border-emerald-500"
                       />
                       <button
                         onClick={() => handleVerifyOtp(ord.id)}
@@ -567,18 +557,18 @@ export default function App() {
         </main>
       )}
 
-      {/* Slide-Up Bottom Cart Drawer */}
+      {/* Slide-Up Bottom Cart Drawer (Light Mode) */}
       {isCartOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
-          <div className="bg-[#12141c] rounded-t-3xl p-5 border-t border-white/10 max-w-md mx-auto w-full animate-slideUp">
-            <div className="flex items-center justify-between pb-3 border-b border-white/5">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end">
+          <div className="bg-white rounded-t-3xl p-5 border-t border-slate-200 max-w-md mx-auto w-full shadow-2xl animate-slideUp">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-sky-400" />
-                <span className="font-semibold text-sm text-slate-100">Checkout Items</span>
+                <ShoppingBag className="w-5 h-5 text-blue-600" />
+                <span className="font-bold text-sm text-slate-900">Checkout Items</span>
               </div>
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 active:scale-90"
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 active:scale-90"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -586,23 +576,23 @@ export default function App() {
 
             <div className="py-4 max-h-60 overflow-y-auto space-y-2.5">
               {Object.values(cart).map((item) => (
-                <div key={item.product.id} className="flex items-center justify-between text-xs text-slate-300">
-                  <span>
+                <div key={item.product.id} className="flex items-center justify-between text-xs text-slate-600">
+                  <span className="font-medium text-slate-800">
                     {item.product.name} ({item.quantity})
                   </span>
-                  <span className="font-bold text-slate-100">₹{item.product.price * item.quantity}</span>
+                  <span className="font-bold text-slate-900">₹{item.product.price * item.quantity}</span>
                 </div>
               ))}
             </div>
 
-            <div className="pt-3 border-t border-white/5 flex items-center justify-between text-sm mb-4">
-              <span className="text-slate-400">Total Payable</span>
-              <span className="text-base font-bold text-sky-400">₹{cartTotalPrice}</span>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-sm mb-4">
+              <span className="text-slate-500 font-medium">Total Payable</span>
+              <span className="text-base font-bold text-blue-600">₹{cartTotalPrice}</span>
             </div>
 
             <button
               onClick={handleCheckout}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 active:scale-95 transition-all"
+              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 active:scale-95 transition-all"
             >
               <span>Instant Local Delivery</span>
               <ArrowRight className="w-4 h-4" />
@@ -611,8 +601,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Bottom Floating Glass Island (Fixed Tab Navigation) */}
-      <nav className="fixed bottom-3 left-4 right-4 max-w-md mx-auto z-40 glass rounded-3xl p-2 flex items-center justify-around border border-white/10 shadow-2xl">
+      {/* Floating Light Mode Bottom Bar */}
+      <nav className="fixed bottom-3 left-4 right-4 max-w-md mx-auto z-40 bg-white/95 backdrop-blur-md rounded-3xl p-2 flex items-center justify-around border border-slate-200/90 shadow-xl shadow-slate-300/40">
         <button
           onClick={() => {
             setRole('customer');
@@ -620,8 +610,8 @@ export default function App() {
           }}
           className={`p-3 rounded-2xl transition-all duration-200 active:scale-90 ${
             activeTab === 'explore' && role === 'customer'
-              ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+              : 'text-slate-400 hover:text-slate-700'
           }`}
         >
           <Compass className="w-5 h-5" strokeWidth={2} />
@@ -634,13 +624,13 @@ export default function App() {
           }}
           className={`p-3 rounded-2xl transition-all duration-200 active:scale-90 relative ${
             activeTab === 'orders' && role === 'customer'
-              ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+              : 'text-slate-400 hover:text-slate-700'
           }`}
         >
           <Package className="w-5 h-5" strokeWidth={2} />
           {activeOrder && activeOrder.status !== 'delivered' && (
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
           )}
         </button>
 
@@ -649,8 +639,8 @@ export default function App() {
           onClick={() => setIsCartOpen(true)}
           className={`p-3 rounded-2xl transition-all duration-200 active:scale-90 relative ${
             cartTotalItems > 0
-              ? 'bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/30'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+              : 'text-slate-400 hover:text-slate-700'
           }`}
         >
           <ShoppingBag className="w-5 h-5" strokeWidth={2} />
@@ -668,8 +658,8 @@ export default function App() {
           }}
           className={`p-3 rounded-2xl transition-all duration-200 active:scale-90 ${
             role === 'dukandar'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+              : 'text-slate-400 hover:text-slate-700'
           }`}
         >
           <Store className="w-5 h-5" strokeWidth={2} />
