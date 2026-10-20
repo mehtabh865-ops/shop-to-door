@@ -11,7 +11,7 @@ const getBaseUrl = () => {
     }
     // If on Render static site, use public live HTTPS tunnel to MongoDB backend
     if (window.location.hostname.includes('onrender.com')) {
-      return 'https://6098019b5cfea3.lhr.life/v1';
+      return 'https://48ded23995b564.lhr.life/v1';
     }
     // Default to relative /v1 for unified Web Services
     return `${window.location.origin}/v1`;
@@ -48,6 +48,12 @@ async function safeFetchJson(url, options = {}) {
     }
 
     if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('std_token');
+        localStorage.removeItem('std_user');
+        window.dispatchEvent(new Event('auth:unauthorized'));
+        throw new Error('Session expired. Please login again.');
+      }
       throw new Error(json.message || `Request failed with status ${res.status}`);
     }
     return json;
