@@ -1,6 +1,8 @@
-// Determine API Base URL dynamically
+// Dynamic API Base URL configuration
 const getBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  }
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('std_custom_api_url');
     if (custom) return custom.replace(/\/+$/, '');
@@ -8,21 +10,17 @@ const getBaseUrl = () => {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:5000/v1';
     }
-    // If on Wi-Fi IP (e.g. 192.168.1.3), point to local backend port 5000
+    // If accessing via local network Wi-Fi (e.g. 192.168.1.x)
     if (/^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)) {
       return `http://${window.location.hostname}:5000/v1`;
     }
-    // If on Render static site, use public live HTTPS tunnel to MongoDB backend
-    if (window.location.hostname.includes('onrender.com')) {
-      return 'https://48ded23995b564.lhr.life/v1';
-    }
-    // Default to relative /v1 for unified Web Services
+    // Production Render Web Service / default
     return `${window.location.origin}/v1`;
   }
-  return '/v1';
+  return 'http://localhost:5000/v1';
 };
 
-const BASE_URL = getBaseUrl();
+export const BASE_URL = getBaseUrl();
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('std_token');
@@ -32,7 +30,6 @@ const getAuthHeaders = () => {
   };
 };
 
-// Safe JSON parser to prevent "Unexpected end of JSON input" errors
 async function safeFetchJson(url, options = {}) {
   try {
     const res = await fetch(url, options);
@@ -41,13 +38,9 @@ async function safeFetchJson(url, options = {}) {
     if (text && text.trim().length > 0) {
       try {
         json = JSON.parse(text);
-      } catch (e) {
-        // Returned HTML (e.g. 404 or index.html)
+      } catch {
         throw new Error('BACKEND_NOT_CONNECTED');
       }
-    } else {
-      // Empty response from static server
-      throw new Error('BACKEND_NOT_CONNECTED');
     }
 
     if (!res.ok) {
@@ -68,29 +61,12 @@ async function safeFetchJson(url, options = {}) {
   }
 }
 
-// Fallback Mock Database for Instant Phone Testing when backend is sleeping/offline
-const DEMO_USERS = {
-  'customer@shoptodoor.com': {
-    id: 'user_cust_demo',
-    name: 'Rahul Sharma',
-    email: 'customer@shoptodoor.com',
-    role: 'customer',
-    phoneNumber: '9820054321',
-  },
-  'dukandar@shoptodoor.com': {
-    id: 'user_duk_demo',
-    name: 'Ramesh Gupta',
-    email: 'dukandar@shoptodoor.com',
-    role: 'dukandar',
-    phoneNumber: '9820012345',
-    shopName: 'Gupta Kirana & Daily Needs',
-  },
-};
-
-const DEFAULT_SHOPS = [
+// Fallback demo fixtures for seamless offline/preview stability
+const FALLBACK_SHOPS = [
   {
     id: '6ad70c091134263f4ce70e06',
     name: 'Gupta Kirana & Daily Needs',
+    shopName: 'Gupta Kirana & Daily Needs',
     category: 'grocery',
     description: 'Fresh wheat, pulses, dairy, oils & all daily essentials',
     phone: '9820012345',
@@ -101,8 +77,9 @@ const DEFAULT_SHOPS = [
   {
     id: '6ad70c0a1134263f4ce70e0c',
     name: 'Kisan Fresh Sabzi & Fruit Mandi',
+    shopName: 'Kisan Fresh Sabzi & Fruit Mandi',
     category: 'fruits_vegetables',
-    description: 'Daily fresh organic fruits and farm-picked vegetables',
+    description: 'Daily fresh organic fruits and farm-picked green vegetables',
     phone: '9820098765',
     isOpen: true,
     rating: 4.8,
@@ -111,6 +88,7 @@ const DEFAULT_SHOPS = [
   {
     id: '6ad70c0a1134263f4ce70e11',
     name: 'Sanjeevani Medicos & Healthcare',
+    shopName: 'Sanjeevani Medicos & Healthcare',
     category: 'pharmacy',
     description: 'Prescription medicines, baby care & first aid essentials',
     phone: '9820067890',
@@ -120,96 +98,76 @@ const DEFAULT_SHOPS = [
   },
 ];
 
-const DEFAULT_PRODUCTS = {
-  '6ad70c091134263f4ce70e06': [
-    { id: '6ad70c091134263f4ce70e07', name: 'Aashirvaad Shudh Chakki Atta', price: 245, mrp: 275, unit: 'kg', unitValue: '5', category: 'grocery', stock: 50, isOffer: true, discountPercent: 11, offerBadge: '11% OFF' },
-    { id: '6ad70c091134263f4ce70e08', name: 'Amul Taaza Homogenised Milk', price: 66, mrp: 72, unit: 'liter', unitValue: '1', category: 'dairy', stock: 35, isOffer: false },
-    { id: '6ad70c091134263f4ce70e09', name: 'Amul Salted Butter', price: 275, mrp: 290, unit: 'gm', unitValue: '500', category: 'dairy', stock: 20, isOffer: true, discountPercent: 5, offerBadge: 'Save ₹15' },
-    { id: '6ad70c091134263f4ce70e0a', name: 'Nescafe Classic Instant Coffee', price: 330, mrp: 380, unit: 'gm', unitValue: '200', category: 'snacks', stock: 15, isOffer: true, discountPercent: 13, offerBadge: 'Hot Deal' },
-    { id: '6ad7207f653df5fb8786e408', name: 'Fresh Paneer 200g', price: 90, mrp: 100, unit: 'packet', unitValue: '1', category: 'dairy', stock: 30, isOffer: true, discountPercent: 10, offerBadge: '10% OFF' },
-  ],
-  '6ad70c0a1134263f4ce70e0c': [
-    { id: '6ad70c0a1134263f4ce70e0d', name: 'Fresh Farm Apples (Kinnaur)', price: 160, mrp: 180, unit: 'kg', unitValue: '1', category: 'fruits_vegetables', stock: 25, isOffer: true, discountPercent: 11, offerBadge: 'Fresh' },
-    { id: '6ad70c0a1134263f4ce70e0e', name: 'Hybrid Desi Tomatoes', price: 40, mrp: 50, unit: 'kg', unitValue: '1', category: 'fruits_vegetables', stock: 60, isOffer: true, discountPercent: 20, offerBadge: '20% OFF' },
-    { id: '6ad70c0a1134263f4ce70e0f', name: 'Fresh Green Palak', price: 30, mrp: 35, unit: 'gm', unitValue: '250', category: 'fruits_vegetables', stock: 30, isOffer: false },
-  ],
-  '6ad70c0a1134263f4ce70e11': [
-    { id: '6ad70c0a1134263f4ce70e12', name: 'Emergency First Aid Kit', price: 450, mrp: 550, unit: 'box', unitValue: '1', category: 'pharmacy', stock: 10, isOffer: true, discountPercent: 18, offerBadge: '18% OFF' },
-    { id: '6ad70c0a1134263f4ce70e13', name: 'Limcee Vitamin C 500mg', price: 180, mrp: 210, unit: 'strip', unitValue: '15', category: 'pharmacy', stock: 45, isOffer: true, discountPercent: 14, offerBadge: 'Best Seller' },
-  ],
-};
-
-const DEFAULT_COMBOS = [
+const FALLBACK_PRODUCTS = [
   {
-    id: 'combo_1',
-    name: 'Morning Breakfast Combo',
-    description: 'Amul Milk (1L) + Amul Butter (500g) + Nescafe Coffee (200g)',
-    comboPrice: 599,
-    originalPrice: 671,
-    savings: 72,
-    badge: 'Save ₹72',
-    items: [
-      { product: { id: '6ad70c091134263f4ce70e08', name: 'Amul Milk' }, quantity: 1 },
-      { product: { id: '6ad70c091134263f4ce70e09', name: 'Amul Butter' }, quantity: 1 },
-      { product: { id: '6ad70c091134263f4ce70e0a', name: 'Nescafe Coffee' }, quantity: 1 },
-    ],
+    id: '6ad70c091134263f4ce70e07',
+    name: 'Aashirvaad Shudh Chakki Atta',
+    price: 245,
+    mrp: 275,
+    unit: 'kg',
+    category: 'grocery',
+    stock: 50,
+    isAvailable: true,
   },
   {
-    id: 'combo_2',
-    name: 'Kirana Essentials Pack',
-    description: 'Chakki Atta (5kg) + Fresh Paneer (200g) + Amul Milk (1L)',
-    comboPrice: 380,
-    originalPrice: 401,
-    savings: 21,
-    badge: 'Daily Needs Saver',
-    items: [
-      { product: { id: '6ad70c091134263f4ce70e07', name: 'Chakki Atta 5kg' }, quantity: 1 },
-      { product: { id: '6ad7207f653df5fb8786e408', name: 'Fresh Paneer 200g' }, quantity: 1 },
-      { product: { id: '6ad70c091134263f4ce70e08', name: 'Amul Milk 1L' }, quantity: 1 },
-    ],
-  },
-];
-
-const DEFAULT_COUPONS = [
-  {
-    id: 'coup_1',
-    code: 'WELCOME50',
-    description: 'Flat ₹50 OFF on orders above ₹299',
-    discountType: 'flat',
-    discountValue: 50,
-    minOrderAmount: 299,
-    maxDiscount: 50,
-    isActive: true,
+    id: '6ad70c091134263f4ce70e08',
+    name: 'Amul Taaza Homogenised Milk',
+    price: 66,
+    mrp: 72,
+    unit: 'liter',
+    category: 'dairy',
+    stock: 35,
+    isAvailable: true,
   },
   {
-    id: 'coup_2',
-    code: 'SUPER10',
-    description: '10% instant discount on orders above ₹400',
-    discountType: 'percentage',
-    discountValue: 10,
-    minOrderAmount: 400,
-    maxDiscount: 100,
-    isActive: true,
+    id: '6ad70c091134263f4ce70e09',
+    name: 'Amul Salted Butter 500g',
+    price: 275,
+    mrp: 290,
+    unit: 'gm',
+    category: 'dairy',
+    stock: 20,
+    isAvailable: true,
+  },
+  {
+    id: '6ad70c091134263f4ce70e0a',
+    name: 'Tata Salt Vaccum Evaporated 1kg',
+    price: 28,
+    mrp: 30,
+    unit: 'packet',
+    category: 'grocery',
+    stock: 80,
+    isAvailable: true,
   },
 ];
 
 export const api = {
-  // === AUTHENTICATION ===
-  async login(data) {
+  // === AUTHENTICATION (CLONED PASSPORT JWT) ===
+  async checkPhone(phone) {
+    const res = await safeFetchJson(`${BASE_URL}/auth/check-phone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    if (res._fallback) {
+      const savedUser = localStorage.getItem(`user_${phone}`);
+      return { exists: !!savedUser, role: savedUser ? JSON.parse(savedUser).role : null };
+    }
+    return res;
+  },
+
+  async login(credentials) {
     const res = await safeFetchJson(`${BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(credentials),
     });
-
     if (res._fallback) {
-      // Smart Demo & Offline Fallback: Login successfully without breaking!
-      const user = DEMO_USERS[data.email] || {
+      const user = {
         id: `user_${Date.now()}`,
-        name: data.email.split('@')[0],
-        email: data.email,
-        role: data.email.includes('dukandar') ? 'dukandar' : 'customer',
-        phoneNumber: '9876543210',
+        name: credentials.phone || 'User',
+        phone: credentials.phone || '9876543210',
+        role: credentials.phone?.startsWith('98') ? 'dukandar' : 'customer',
       };
       return {
         user,
@@ -225,17 +183,15 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-
     if (res._fallback) {
-      // Offline fallback: Create user in local storage
       const user = {
         id: `user_${Date.now()}`,
         name: data.name,
-        email: data.email,
+        phone: data.phone,
         role: data.role || 'customer',
-        phoneNumber: data.phoneNumber || '9876543210',
-        shopName: data.shopName,
+        shopName: data.shopName || '',
       };
+      localStorage.setItem(`user_${data.phone}`, JSON.stringify(user));
       return {
         user,
         tokens: { access: { token: `demo_jwt_token_${Date.now()}` } },
@@ -244,66 +200,153 @@ export const api = {
     return res;
   },
 
+  async getMe() {
+    return safeFetchJson(`${BASE_URL}/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
   logout() {
     localStorage.removeItem('std_token');
     localStorage.removeItem('std_user');
   },
 
-  // === SHOPS ===
-  async getShops(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    const res = await safeFetchJson(`${BASE_URL}/shops${query ? '?' + query : ''}`);
-    if (res._fallback || !res.results || res.results.length === 0) {
-      return { results: DEFAULT_SHOPS };
+  // === GEO-RADIUS DISCOVERY & SHOPS ===
+  async getNearbyShops(lng = 77.209, lat = 28.6139) {
+    const res = await safeFetchJson(`${BASE_URL}/shops/nearby?lng=${lng}&lat=${lat}`);
+    if (res._fallback || !Array.isArray(res) || res.length === 0) {
+      return FALLBACK_SHOPS;
     }
     return res;
   },
 
   async getMyShop() {
-    const res = await safeFetchJson(`${BASE_URL}/shops/my/profile`, {
+    const res = await safeFetchJson(`${BASE_URL}/shops/me`, {
       headers: getAuthHeaders(),
     });
     if (res._fallback) {
-      return DEFAULT_SHOPS[0];
+      return FALLBACK_SHOPS[0];
     }
     return res;
   },
 
-  async toggleShopStatus() {
-    const res = await safeFetchJson(`${BASE_URL}/shops/my/toggle-status`, {
+  async updateMyShop(shopData) {
+    return safeFetchJson(`${BASE_URL}/shops/me`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
+      body: JSON.stringify(shopData),
     });
-    if (res._fallback) {
-      DEFAULT_SHOPS[0].isOpen = !DEFAULT_SHOPS[0].isOpen;
-      return DEFAULT_SHOPS[0];
-    }
-    return res;
   },
 
-  // === PRODUCTS ===
-  async getShopProducts(shopId, params = {}) {
-    const query = new URLSearchParams(params).toString();
-    const res = await safeFetchJson(`${BASE_URL}/products/shop/${shopId}${query ? '?' + query : ''}`);
-    if (res._fallback || !res.results || res.results.length === 0) {
-      const demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || 'null');
-      return { results: (shopId === 'shop_demo_1' && demoProducts) || DEFAULT_PRODUCTS[shopId] || DEFAULT_PRODUCTS['shop_demo_1'] };
+  // === INVENTORY & PRODUCTS ===
+  async getProducts(shopId, category) {
+    const query = category && category !== 'All' && category !== 'all'
+      ? `?shopId=${shopId}&category=${category}`
+      : `?shopId=${shopId}`;
+    const res = await safeFetchJson(`${BASE_URL}/products${query}`);
+    if (res._fallback || !Array.isArray(res) || res.length === 0) {
+      return FALLBACK_PRODUCTS;
     }
     return res;
   },
 
   async getMyProducts() {
-    const res = await safeFetchJson(`${BASE_URL}/products/my`, {
+    const res = await safeFetchJson(`${BASE_URL}/products/my-inventory`, {
       headers: getAuthHeaders(),
     });
-    if (res._fallback) {
-      const demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || JSON.stringify(DEFAULT_PRODUCTS['shop_demo_1']));
-      return { results: demoProducts };
+    if (res._fallback || !Array.isArray(res)) {
+      return JSON.parse(localStorage.getItem('std_local_inventory') || JSON.stringify(FALLBACK_PRODUCTS));
     }
     return res;
   },
 
-  // === ORDERS ===
+  async createProduct(productData) {
+    const res = await safeFetchJson(`${BASE_URL}/products`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(productData),
+    });
+    if (res._fallback) {
+      const local = JSON.parse(localStorage.getItem('std_local_inventory') || JSON.stringify(FALLBACK_PRODUCTS));
+      const newProd = { ...productData, id: `prod_${Date.now()}`, isAvailable: true };
+      local.unshift(newProd);
+      localStorage.setItem('std_local_inventory', JSON.stringify(local));
+      return newProd;
+    }
+    return res;
+  },
+
+  async updateProduct(id, productData) {
+    return safeFetchJson(`${BASE_URL}/products/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(productData),
+    });
+  },
+
+  async deleteProduct(id) {
+    return safeFetchJson(`${BASE_URL}/products/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // === COMBOS & COUPONS ===
+  async getCombos(shopId) {
+    const res = await safeFetchJson(`${BASE_URL}/combos?shopId=${shopId}`);
+    return Array.isArray(res) ? res : [];
+  },
+
+  async getMyCombos() {
+    const res = await safeFetchJson(`${BASE_URL}/combos/my-combos`, {
+      headers: getAuthHeaders(),
+    });
+    return Array.isArray(res) ? res : [];
+  },
+
+  async createCombo(data) {
+    return safeFetchJson(`${BASE_URL}/combos`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteCombo(id) {
+    return safeFetchJson(`${BASE_URL}/combos/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async getCoupons(shopId) {
+    const res = await safeFetchJson(`${BASE_URL}/coupons?shopId=${shopId}`);
+    return Array.isArray(res) ? res : [];
+  },
+
+  async getMyCoupons() {
+    const res = await safeFetchJson(`${BASE_URL}/coupons/my-coupons`, {
+      headers: getAuthHeaders(),
+    });
+    return Array.isArray(res) ? res : [];
+  },
+
+  async createCoupon(data) {
+    return safeFetchJson(`${BASE_URL}/coupons`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteCoupon(id) {
+    return safeFetchJson(`${BASE_URL}/coupons/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  // === ORDERS & LIVE DISPATCH QUEUE ===
   async createOrder(orderData) {
     const res = await safeFetchJson(`${BASE_URL}/orders`, {
       method: 'POST',
@@ -311,36 +354,18 @@ export const api = {
       body: JSON.stringify(orderData),
     });
     if (res._fallback) {
-      const otp = Math.floor(1000 + Math.random() * 9000).toString();
-      const demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || JSON.stringify(DEFAULT_PRODUCTS['6ad70c091134263f4ce70e06']));
-      let calculatedTotal = 0;
-      const orderItems = (orderData.items || []).map((it) => {
-        const prod = demoProducts.find((p) => p.id === it.productId);
-        const name = prod ? prod.name : 'Store Item';
-        const price = prod ? prod.price : 100;
-        const total = price * it.quantity;
-        calculatedTotal += total;
-        return {
-          productId: it.productId,
-          name,
-          price,
-          quantity: it.quantity,
-          totalPrice: total,
-        };
-      });
-
       const order = {
         id: `ord_${Date.now()}`,
-        orderNumber: `STD-${Date.now().toString().slice(-6)}`,
-        status: 'placed',
-        deliveryOtp: otp,
-        totalAmount: calculatedTotal || 199,
+        orderNumber: `STD-${Date.now().toString(36).toUpperCase()}`,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+        status: 'pending',
+        deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString(),
         createdAt: new Date().toISOString(),
-        items: orderItems,
       };
-      const existing = JSON.parse(localStorage.getItem('std_demo_orders') || '[]');
+      const existing = JSON.parse(localStorage.getItem('std_customer_orders') || '[]');
       existing.unshift(order);
-      localStorage.setItem('std_demo_orders', JSON.stringify(existing));
+      localStorage.setItem('std_customer_orders', JSON.stringify(existing));
       return order;
     }
     return res;
@@ -350,276 +375,35 @@ export const api = {
     const res = await safeFetchJson(`${BASE_URL}/orders/my-orders`, {
       headers: getAuthHeaders(),
     });
-    if (res._fallback) {
-      const demoOrders = JSON.parse(localStorage.getItem('std_demo_orders') || '[]');
-      return { results: demoOrders };
+    if (res._fallback || !Array.isArray(res)) {
+      return JSON.parse(localStorage.getItem('std_customer_orders') || '[]');
     }
     return res;
   },
 
-  async getShopOrders() {
-    const res = await safeFetchJson(`${BASE_URL}/orders/shop-orders`, {
+  async getDukandarOrders() {
+    const res = await safeFetchJson(`${BASE_URL}/orders/dukandar-orders`, {
       headers: getAuthHeaders(),
     });
-    if (res._fallback) {
-      const demoOrders = JSON.parse(localStorage.getItem('std_demo_orders') || '[]');
-      return { results: demoOrders };
+    if (res._fallback || !Array.isArray(res)) {
+      return JSON.parse(localStorage.getItem('std_dukandar_orders') || '[]');
     }
     return res;
   },
 
   async updateOrderStatus(orderId, status) {
-    const res = await safeFetchJson(`${BASE_URL}/orders/${orderId}/status`, {
+    return safeFetchJson(`${BASE_URL}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
-    if (res._fallback) {
-      const demoOrders = JSON.parse(localStorage.getItem('std_demo_orders') || '[]');
-      const ord = demoOrders.find((o) => o.id === orderId);
-      if (ord) ord.status = status;
-      localStorage.setItem('std_demo_orders', JSON.stringify(demoOrders));
-      return { order: ord };
-    }
-    return res;
   },
 
   async verifyDeliveryOtp(orderId, otp) {
-    const res = await safeFetchJson(`${BASE_URL}/orders/${orderId}/verify-otp`, {
+    return safeFetchJson(`${BASE_URL}/orders/${orderId}/verify-otp`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ otp }),
     });
-    if (res._fallback) {
-      const demoOrders = JSON.parse(localStorage.getItem('std_demo_orders') || '[]');
-      const ord = demoOrders.find((o) => o.id === orderId);
-      if (ord) {
-        if (ord.deliveryOtp === otp) {
-          ord.status = 'delivered';
-          localStorage.setItem('std_demo_orders', JSON.stringify(demoOrders));
-          return { message: 'Verified', order: ord };
-        } else {
-          throw new Error('Invalid OTP');
-        }
-      }
-    }
-    return res;
-  },
-
-  // === DUKANDAR INVENTORY CRUD ===
-  async createProduct(productData) {
-    const res = await safeFetchJson(`${BASE_URL}/products`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(productData),
-    });
-    if (res._fallback) {
-      const demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || JSON.stringify(DEFAULT_PRODUCTS['shop_demo_1']));
-      const newProd = {
-        id: `prod_${Date.now()}`,
-        ...productData,
-        createdAt: new Date().toISOString(),
-      };
-      demoProducts.unshift(newProd);
-      localStorage.setItem('std_demo_products', JSON.stringify(demoProducts));
-      return newProd;
-    }
-    return res;
-  },
-
-  async updateProduct(productId, updateData) {
-    const res = await safeFetchJson(`${BASE_URL}/products/${productId}`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(updateData),
-    });
-    if (res._fallback) {
-      let demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || JSON.stringify(DEFAULT_PRODUCTS['shop_demo_1']));
-      demoProducts = demoProducts.map((p) => (p.id === productId ? { ...p, ...updateData } : p));
-      localStorage.setItem('std_demo_products', JSON.stringify(demoProducts));
-      return demoProducts.find((p) => p.id === productId);
-    }
-    return res;
-  },
-
-  async deleteProduct(productId) {
-    const res = await safeFetchJson(`${BASE_URL}/products/${productId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (res._fallback) {
-      let demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || JSON.stringify(DEFAULT_PRODUCTS['shop_demo_1']));
-      demoProducts = demoProducts.filter((p) => p.id !== productId);
-      localStorage.setItem('std_demo_products', JSON.stringify(demoProducts));
-      return { message: 'Deleted' };
-    }
-    return res;
-  },
-
-  // === COMBOS APIS ===
-  async createCombo(comboData) {
-    const res = await safeFetchJson(`${BASE_URL}/combos`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(comboData),
-    });
-    if (res._fallback) {
-      const combos = JSON.parse(localStorage.getItem('std_demo_combos') || JSON.stringify(DEFAULT_COMBOS));
-      const newCombo = {
-        id: `combo_${Date.now()}`,
-        ...comboData,
-        savings: (comboData.originalPrice || comboData.comboPrice + 50) - comboData.comboPrice,
-      };
-      combos.unshift(newCombo);
-      localStorage.setItem('std_demo_combos', JSON.stringify(combos));
-      return newCombo;
-    }
-    return res;
-  },
-
-  async getMyCombos() {
-    const res = await safeFetchJson(`${BASE_URL}/combos/my`, {
-      headers: getAuthHeaders(),
-    });
-    if (res._fallback) {
-      return { results: JSON.parse(localStorage.getItem('std_demo_combos') || JSON.stringify(DEFAULT_COMBOS)) };
-    }
-    return res;
-  },
-
-  async getShopCombos(shopId) {
-    const res = await safeFetchJson(`${BASE_URL}/combos/shop/${shopId}`);
-    if (res._fallback) {
-      return { results: JSON.parse(localStorage.getItem('std_demo_combos') || JSON.stringify(DEFAULT_COMBOS)) };
-    }
-    return res;
-  },
-
-  async deleteCombo(comboId) {
-    const res = await safeFetchJson(`${BASE_URL}/combos/${comboId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (res._fallback) {
-      let combos = JSON.parse(localStorage.getItem('std_demo_combos') || JSON.stringify(DEFAULT_COMBOS));
-      combos = combos.filter((c) => c.id !== comboId);
-      localStorage.setItem('std_demo_combos', JSON.stringify(combos));
-      return { message: 'Deleted' };
-    }
-    return res;
-  },
-
-  // === COUPONS & OFFERS APIS ===
-  async createCoupon(couponData) {
-    const res = await safeFetchJson(`${BASE_URL}/coupons`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(couponData),
-    });
-    if (res._fallback) {
-      const coupons = JSON.parse(localStorage.getItem('std_demo_coupons') || JSON.stringify(DEFAULT_COUPONS));
-      const newCoupon = {
-        id: `coup_${Date.now()}`,
-        ...couponData,
-        code: couponData.code.toUpperCase(),
-        isActive: true,
-      };
-      coupons.unshift(newCoupon);
-      localStorage.setItem('std_demo_coupons', JSON.stringify(coupons));
-      return newCoupon;
-    }
-    return res;
-  },
-
-  async getMyCoupons() {
-    const res = await safeFetchJson(`${BASE_URL}/coupons/my`, {
-      headers: getAuthHeaders(),
-    });
-    if (res._fallback) {
-      return { results: JSON.parse(localStorage.getItem('std_demo_coupons') || JSON.stringify(DEFAULT_COUPONS)) };
-    }
-    return res;
-  },
-
-  async getShopCoupons(shopId) {
-    const res = await safeFetchJson(`${BASE_URL}/coupons/shop/${shopId}`);
-    if (res._fallback) {
-      return JSON.parse(localStorage.getItem('std_demo_coupons') || JSON.stringify(DEFAULT_COUPONS));
-    }
-    return res;
-  },
-
-  async applyCoupon(shopId, code, orderTotal) {
-    const res = await safeFetchJson(`${BASE_URL}/coupons/apply`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ shopId, code, orderTotal }),
-    });
-    if (res._fallback) {
-      const coupons = JSON.parse(localStorage.getItem('std_demo_coupons') || JSON.stringify(DEFAULT_COUPONS));
-      const matched = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase() && (c.isActive !== false));
-      if (!matched && code.toUpperCase() !== 'WELCOME50' && code.toUpperCase() !== 'SUPER10') {
-        throw new Error('Invalid or expired coupon code');
-      }
-      let discountAmount = 50;
-      if (matched) {
-        if (matched.minOrderAmount && orderTotal < matched.minOrderAmount) {
-          throw new Error(`Minimum order of ₹${matched.minOrderAmount} required for this coupon`);
-        }
-        discountAmount = matched.discountType === 'percentage'
-          ? Math.round((orderTotal * matched.discountValue) / 100)
-          : matched.discountValue;
-        if (matched.maxDiscount && discountAmount > matched.maxDiscount) {
-          discountAmount = matched.maxDiscount;
-        }
-      }
-      discountAmount = Math.min(discountAmount, orderTotal);
-      return {
-        code: code.toUpperCase(),
-        discountAmount,
-        finalAmount: orderTotal - discountAmount,
-      };
-    }
-    return res;
-  },
-
-  async deleteCoupon(couponId) {
-    const res = await safeFetchJson(`${BASE_URL}/coupons/${couponId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (res._fallback) {
-      let coupons = JSON.parse(localStorage.getItem('std_demo_coupons') || JSON.stringify(DEFAULT_COUPONS));
-      coupons = coupons.filter((c) => c.id !== couponId);
-      localStorage.setItem('std_demo_coupons', JSON.stringify(coupons));
-      return { message: 'Deleted' };
-    }
-    return res;
-  },
-
-  // === SERVER STATUS & CONFIG ===
-  getEffectiveApiUrl() {
-    return BASE_URL;
-  },
-
-  setCustomApiUrl(url) {
-    if (url) {
-      localStorage.setItem('std_custom_api_url', url.trim());
-    } else {
-      localStorage.removeItem('std_custom_api_url');
-    }
-  },
-
-  resetApiUrl() {
-    localStorage.removeItem('std_custom_api_url');
-  },
-
-  async checkServerStatus() {
-    try {
-      const res = await fetch(`${BASE_URL}/shops?limit=1`, { method: 'GET' });
-      return res.ok;
-    } catch {
-      return false;
-    }
   },
 };
