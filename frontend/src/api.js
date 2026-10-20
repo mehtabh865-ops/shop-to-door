@@ -9,7 +9,11 @@ const getBaseUrl = () => {
     if (/^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)) {
       return `http://${window.location.hostname}:5000/v1`;
     }
-    // If on Render or custom domain, relative /v1
+    // If on Render static site, use public live HTTPS tunnel to MongoDB backend
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://6098019b5cfea3.lhr.life/v1';
+    }
+    // Default to relative /v1 for unified Web Services
     return `${window.location.origin}/v1`;
   }
   return '/v1';
@@ -49,7 +53,6 @@ async function safeFetchJson(url, options = {}) {
     return json;
   } catch (err) {
     if (err.message === 'BACKEND_NOT_CONNECTED' || err.name === 'TypeError') {
-      // Return a special flag indicating fallback is needed
       return { _fallback: true, originalError: err.message };
     }
     throw err;
@@ -77,7 +80,7 @@ const DEMO_USERS = {
 
 const DEFAULT_SHOPS = [
   {
-    id: 'shop_demo_1',
+    id: '6ad70c091134263f4ce70e06',
     name: 'Gupta Kirana & Daily Needs',
     category: 'grocery',
     description: 'Fresh wheat, pulses, dairy, oils & all daily essentials',
@@ -87,7 +90,7 @@ const DEFAULT_SHOPS = [
     deliveryRadiusKm: 5,
   },
   {
-    id: 'shop_demo_2',
+    id: '6ad70c0a1134263f4ce70e0c',
     name: 'Kisan Fresh Sabzi & Fruit Mandi',
     category: 'fruits_vegetables',
     description: 'Daily fresh organic fruits and farm-picked vegetables',
@@ -97,7 +100,7 @@ const DEFAULT_SHOPS = [
     deliveryRadiusKm: 3,
   },
   {
-    id: 'shop_demo_3',
+    id: '6ad70c0a1134263f4ce70e11',
     name: 'Sanjeevani Medicos & Healthcare',
     category: 'pharmacy',
     description: 'Prescription medicines, baby care & first aid essentials',
@@ -109,22 +112,21 @@ const DEFAULT_SHOPS = [
 ];
 
 const DEFAULT_PRODUCTS = {
-  shop_demo_1: [
-    { id: 'p1', name: 'Aashirvaad Shudh Chakki Atta', price: 245, mrp: 275, unit: 'kg', unitValue: '5', category: 'grocery', stock: 50, isOffer: true, discountPercent: 11, offerBadge: '11% OFF' },
-    { id: 'p2', name: 'Amul Taaza Homogenised Milk', price: 66, mrp: 72, unit: 'liter', unitValue: '1', category: 'dairy', stock: 35, isOffer: false },
-    { id: 'p3', name: 'Amul Salted Butter', price: 275, mrp: 290, unit: 'gm', unitValue: '500', category: 'dairy', stock: 20, isOffer: true, discountPercent: 5, offerBadge: 'Save ₹15' },
-    { id: 'p4', name: 'Nescafe Classic Instant Coffee', price: 330, mrp: 380, unit: 'gm', unitValue: '200', category: 'snacks', stock: 15, isOffer: true, discountPercent: 13, offerBadge: 'Hot Deal' },
-    { id: 'p5', name: 'Fortune Sunlite Sunflower Oil', price: 165, mrp: 195, unit: 'liter', unitValue: '1', category: 'grocery', stock: 40, isOffer: true, discountPercent: 15, offerBadge: '15% OFF' },
-    { id: 'p6', name: 'Tata Salt Vaccum Evaporated', price: 28, mrp: 30, unit: 'kg', unitValue: '1', category: 'grocery', stock: 100, isOffer: false },
+  '6ad70c091134263f4ce70e06': [
+    { id: '6ad70c091134263f4ce70e07', name: 'Aashirvaad Shudh Chakki Atta', price: 245, mrp: 275, unit: 'kg', unitValue: '5', category: 'grocery', stock: 50, isOffer: true, discountPercent: 11, offerBadge: '11% OFF' },
+    { id: '6ad70c091134263f4ce70e08', name: 'Amul Taaza Homogenised Milk', price: 66, mrp: 72, unit: 'liter', unitValue: '1', category: 'dairy', stock: 35, isOffer: false },
+    { id: '6ad70c091134263f4ce70e09', name: 'Amul Salted Butter', price: 275, mrp: 290, unit: 'gm', unitValue: '500', category: 'dairy', stock: 20, isOffer: true, discountPercent: 5, offerBadge: 'Save ₹15' },
+    { id: '6ad70c091134263f4ce70e0a', name: 'Nescafe Classic Instant Coffee', price: 330, mrp: 380, unit: 'gm', unitValue: '200', category: 'snacks', stock: 15, isOffer: true, discountPercent: 13, offerBadge: 'Hot Deal' },
+    { id: '6ad7207f653df5fb8786e408', name: 'Fresh Paneer 200g', price: 90, mrp: 100, unit: 'packet', unitValue: '1', category: 'dairy', stock: 30, isOffer: true, discountPercent: 10, offerBadge: '10% OFF' },
   ],
-  shop_demo_2: [
-    { id: 'p7', name: 'Fresh Farm Apples (Kinnaur)', price: 160, mrp: 180, unit: 'kg', unitValue: '1', category: 'fruits_vegetables', stock: 25, isOffer: true, discountPercent: 11, offerBadge: 'Fresh' },
-    { id: 'p8', name: 'Hybrid Desi Tomatoes', price: 40, mrp: 50, unit: 'kg', unitValue: '1', category: 'fruits_vegetables', stock: 60, isOffer: true, discountPercent: 20, offerBadge: '20% OFF' },
-    { id: 'p9', name: 'Fresh Green Palak', price: 30, mrp: 35, unit: 'gm', unitValue: '250', category: 'fruits_vegetables', stock: 30, isOffer: false },
+  '6ad70c0a1134263f4ce70e0c': [
+    { id: '6ad70c0a1134263f4ce70e0d', name: 'Fresh Farm Apples (Kinnaur)', price: 160, mrp: 180, unit: 'kg', unitValue: '1', category: 'fruits_vegetables', stock: 25, isOffer: true, discountPercent: 11, offerBadge: 'Fresh' },
+    { id: '6ad70c0a1134263f4ce70e0e', name: 'Hybrid Desi Tomatoes', price: 40, mrp: 50, unit: 'kg', unitValue: '1', category: 'fruits_vegetables', stock: 60, isOffer: true, discountPercent: 20, offerBadge: '20% OFF' },
+    { id: '6ad70c0a1134263f4ce70e0f', name: 'Fresh Green Palak', price: 30, mrp: 35, unit: 'gm', unitValue: '250', category: 'fruits_vegetables', stock: 30, isOffer: false },
   ],
-  shop_demo_3: [
-    { id: 'p10', name: 'Emergency First Aid Kit', price: 450, mrp: 550, unit: 'box', unitValue: '1', category: 'pharmacy', stock: 10, isOffer: true, discountPercent: 18, offerBadge: '18% OFF' },
-    { id: 'p11', name: 'Limcee Vitamin C 500mg', price: 180, mrp: 210, unit: 'strip', unitValue: '15', category: 'pharmacy', stock: 45, isOffer: true, discountPercent: 14, offerBadge: 'Best Seller' },
+  '6ad70c0a1134263f4ce70e11': [
+    { id: '6ad70c0a1134263f4ce70e12', name: 'Emergency First Aid Kit', price: 450, mrp: 550, unit: 'box', unitValue: '1', category: 'pharmacy', stock: 10, isOffer: true, discountPercent: 18, offerBadge: '18% OFF' },
+    { id: '6ad70c0a1134263f4ce70e13', name: 'Limcee Vitamin C 500mg', price: 180, mrp: 210, unit: 'strip', unitValue: '15', category: 'pharmacy', stock: 45, isOffer: true, discountPercent: 14, offerBadge: 'Best Seller' },
   ],
 };
 
@@ -138,23 +140,23 @@ const DEFAULT_COMBOS = [
     savings: 72,
     badge: 'Save ₹72',
     items: [
-      { product: { id: 'p2', name: 'Amul Milk' }, quantity: 1 },
-      { product: { id: 'p3', name: 'Amul Butter' }, quantity: 1 },
-      { product: { id: 'p4', name: 'Nescafe Coffee' }, quantity: 1 },
+      { product: { id: '6ad70c091134263f4ce70e08', name: 'Amul Milk' }, quantity: 1 },
+      { product: { id: '6ad70c091134263f4ce70e09', name: 'Amul Butter' }, quantity: 1 },
+      { product: { id: '6ad70c091134263f4ce70e0a', name: 'Nescafe Coffee' }, quantity: 1 },
     ],
   },
   {
     id: 'combo_2',
     name: 'Kirana Essentials Pack',
-    description: 'Chakki Atta (5kg) + Sunflower Oil (1L) + Tata Salt (1kg)',
-    comboPrice: 410,
-    originalPrice: 438,
-    savings: 28,
+    description: 'Chakki Atta (5kg) + Fresh Paneer (200g) + Amul Milk (1L)',
+    comboPrice: 380,
+    originalPrice: 401,
+    savings: 21,
     badge: 'Daily Needs Saver',
     items: [
-      { product: { id: 'p1', name: 'Chakki Atta 5kg' }, quantity: 1 },
-      { product: { id: 'p5', name: 'Sunflower Oil 1L' }, quantity: 1 },
-      { product: { id: 'p6', name: 'Tata Salt 1kg' }, quantity: 1 },
+      { product: { id: '6ad70c091134263f4ce70e07', name: 'Chakki Atta 5kg' }, quantity: 1 },
+      { product: { id: '6ad7207f653df5fb8786e408', name: 'Fresh Paneer 200g' }, quantity: 1 },
+      { product: { id: '6ad70c091134263f4ce70e08', name: 'Amul Milk 1L' }, quantity: 1 },
     ],
   },
 ];
@@ -300,18 +302,33 @@ export const api = {
       body: JSON.stringify(orderData),
     });
     if (res._fallback) {
-      // Create local fallback order with 4-digit OTP
       const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      const demoProducts = JSON.parse(localStorage.getItem('std_demo_products') || JSON.stringify(DEFAULT_PRODUCTS['6ad70c091134263f4ce70e06']));
+      let calculatedTotal = 0;
+      const orderItems = (orderData.items || []).map((it) => {
+        const prod = demoProducts.find((p) => p.id === it.productId);
+        const name = prod ? prod.name : 'Store Item';
+        const price = prod ? prod.price : 100;
+        const total = price * it.quantity;
+        calculatedTotal += total;
+        return {
+          productId: it.productId,
+          name,
+          price,
+          quantity: it.quantity,
+          totalPrice: total,
+        };
+      });
+
       const order = {
         id: `ord_${Date.now()}`,
-        orderNumber: `STD-${Date.now().toString().slice(-4)}`,
+        orderNumber: `STD-${Date.now().toString().slice(-6)}`,
         status: 'placed',
         deliveryOtp: otp,
-        totalAmount: 311,
+        totalAmount: calculatedTotal || 199,
         createdAt: new Date().toISOString(),
-        items: [{ name: 'Grocery Items', quantity: 1, totalPrice: 311 }],
+        items: orderItems,
       };
-      // Save in localStorage for demo
       const existing = JSON.parse(localStorage.getItem('std_demo_orders') || '[]');
       existing.unshift(order);
       localStorage.setItem('std_demo_orders', JSON.stringify(existing));

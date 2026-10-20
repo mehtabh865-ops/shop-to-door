@@ -1,9 +1,21 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { authService, userService, tokenService, emailService } = require('../services');
+const { authService, userService, tokenService, emailService, shopService } = require('../services');
+const { Shop } = require('../models');
 
 const register = catchAsync(async (req, res) => {
   const user = await userService.createUser(req.body);
+  if (user.role === 'dukandar') {
+    await Shop.create({
+      name: req.body.shopName || `${user.name}'s Shop`,
+      owner: user._id,
+      category: req.body.category || 'grocery',
+      phone: user.phoneNumber || '9876543210',
+      description: 'Local neighborhood store with fast doorstep delivery',
+      isOpen: true,
+      deliveryRadiusKm: 5,
+    });
+  }
   const tokens = await tokenService.generateAuthTokens(user);
   res.status(httpStatus.CREATED).send({ user, tokens });
 });

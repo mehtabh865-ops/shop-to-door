@@ -222,20 +222,45 @@ export default function App() {
   const loadDukandarData = async () => {
     if (!currentUser || currentUser.role !== 'dukandar') return;
     try {
-      const [shopRes, prodsRes, combosRes, couponsRes, ordersRes] = await Promise.all([
-        api.getMyShop(),
-        api.getMyProducts(),
-        api.getMyCombos(),
-        api.getMyCoupons(),
-        api.getShopOrders(),
-      ]);
-      setDukandarShop(shopRes);
+      const shopRes = await api.getMyShop();
+      if (shopRes && (shopRes.id || shopRes._id || shopRes.name)) {
+        setDukandarShop(shopRes);
+      }
+    } catch (e) {
+      console.warn('getMyShop error:', e);
+      setDukandarShop({
+        name: currentUser.shopName || `${currentUser.name}'s Shop`,
+        category: 'grocery',
+        isOpen: true,
+      });
+    }
+
+    try {
+      const prodsRes = await api.getMyProducts();
       setDukandarProducts(prodsRes.results || prodsRes || []);
+    } catch (e) {
+      console.warn('getMyProducts error:', e);
+    }
+
+    try {
+      const combosRes = await api.getMyCombos();
       setDukandarCombos(combosRes.results || combosRes || []);
+    } catch (e) {
+      console.warn('getMyCombos error:', e);
+    }
+
+    try {
+      const couponsRes = await api.getMyCoupons();
       setDukandarCoupons(couponsRes.results || couponsRes || []);
+    } catch (e) {
+      console.warn('getMyCoupons error:', e);
+    }
+
+    try {
+      const ordersRes = await api.getShopOrders();
       setDukandarOrders(ordersRes.results || ordersRes || []);
-    } catch (err) {
-      console.warn('Dukandar data error:', err.message);
+    } catch (e) {
+      console.warn('getShopOrders error:', e);
     }
   };
 
@@ -694,19 +719,24 @@ export default function App() {
           }
         } else {
           orderItems.push({
-            productId: entry.item.id,
+            productId: entry.item.id || entry.item._id,
             quantity: entry.quantity,
           });
         }
       }
 
-      await api.createOrder({
-        shopId: selectedShop.id,
+      if (orderItems.length === 0) {
+        alert('Cart has no valid items');
+        return;
+      }
+
+      const createdOrder = await api.createOrder({
+        shopId: selectedShop.id || selectedShop._id,
         items: orderItems,
         deliveryAddress: {
           recipientName: currentUser.name || 'Local Customer',
           phone: currentUser.phoneNumber || '9876543210',
-          street: 'Main Market Road',
+          street: 'Main Market Road, City Center',
           pincode: '400001',
         },
         paymentMethod: 'cod',
@@ -716,7 +746,11 @@ export default function App() {
       setAppliedCoupon(null);
       setIsCartOpen(false);
       setActiveTab('orders');
+      if (createdOrder && (createdOrder.id || createdOrder._id)) {
+        setCustomerOrders((prev) => [createdOrder, ...prev]);
+      }
       loadCustomerOrders();
+      alert('Order Placed Successfully! Share this 4-digit Delivery OTP: ' + (createdOrder.deliveryOtp || ''));
     } catch (err) {
       alert(err.message || 'Failed to place order');
     } finally {
@@ -1224,7 +1258,7 @@ export default function App() {
       {/* ======================================================== */}
       {/* 🏪 DUKANDAR SMART INVENTORY & MERCHANT HUB */}
       {/* ======================================================== */}
-      {role === 'dukandar' && dukandarShop && (
+      {role === 'dukandar' && (
         <main className="flex-1 px-4 pt-3.5 space-y-4 animate-fadeIn">
           {/* Shop Status Banner */}
           <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
@@ -1233,19 +1267,23 @@ export default function App() {
                 <div className="text-[11px] uppercase tracking-wider text-blue-600 font-bold">
                   Merchant Portal
                 </div>
-                <div className="text-base font-bold text-slate-900 mt-0.5">{dukandarShop.name}</div>
+                <div className="text-base font-bold text-slate-900 mt-0.5">
+                  {dukandarShop?.name || currentUser?.shopName || 'Gupta Kirana & Daily Needs'}
+                </div>
               </div>
               {/* 1-Tap Open / Close Switch Connected to MongoDB */}
               <button
                 onClick={handleToggleShop}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl transition-all duration-300 active:scale-90 shadow-sm ${
-                  dukandarShop.isOpen
+                  dukandarShop?.isOpen !== false
                     ? 'bg-emerald-500 text-white shadow-emerald-500/20'
                     : 'bg-rose-50 text-rose-600 border border-rose-200'
                 }`}
               >
                 <Power className="w-3.5 h-3.5" strokeWidth={2.5} />
-                <span className="text-xs font-bold">{dukandarShop.isOpen ? 'OPEN' : 'CLOSED'}</span>
+                <span className="text-xs font-bold">
+                  {dukandarShop?.isOpen !== false ? 'OPEN' : 'CLOSED'}
+                </span>
               </button>
             </div>
 

@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Shop } = require('../models');
+const { Shop, User } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -25,8 +25,21 @@ const createOrUpdateShop = async (ownerId, shopBody) => {
  * @returns {Promise<Shop>}
  */
 const getShopByOwner = async (ownerId) => {
-  const shop = await Shop.findOne({ owner: ownerId });
+  let shop = await Shop.findOne({ owner: ownerId });
   if (!shop) {
+    const user = await User.findById(ownerId);
+    if (user && user.role === 'dukandar') {
+      shop = await Shop.create({
+        name: user.shopName || `${user.name}'s Shop`,
+        owner: ownerId,
+        category: 'grocery',
+        phone: user.phoneNumber || '9876543210',
+        description: 'Local neighborhood store with fast doorstep delivery',
+        isOpen: true,
+        deliveryRadiusKm: 5,
+      });
+      return shop;
+    }
     throw new ApiError(httpStatus.NOT_FOUND, 'Shop profile not found for this user');
   }
   return shop;
