@@ -32,11 +32,22 @@ if (error) {
   throw new Error(`Config validation error: ${error.message}`);
 }
 
+let cleanMongoUrl = (envVars.MONGODB_URL || '').trim();
+if (cleanMongoUrl.startsWith('MONGODB_URL=')) {
+  cleanMongoUrl = cleanMongoUrl.slice(12).trim();
+}
+if (
+  (cleanMongoUrl.startsWith('"') && cleanMongoUrl.endsWith('"')) ||
+  (cleanMongoUrl.startsWith("'") && cleanMongoUrl.endsWith("'"))
+) {
+  cleanMongoUrl = cleanMongoUrl.slice(1, -1).trim();
+}
+
 module.exports = {
   env: envVars.NODE_ENV,
   port: envVars.PORT,
   mongoose: {
-    url: envVars.MONGODB_URL + (envVars.NODE_ENV === 'test' ? '-test' : ''),
+    url: cleanMongoUrl + (envVars.NODE_ENV === 'test' ? '-test' : ''),
     options: {},
   },
   jwt: {
