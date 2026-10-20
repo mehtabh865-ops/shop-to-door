@@ -77,6 +77,21 @@ const productSchema = mongoose.Schema(
       default: true,
       index: true,
     },
+    discountPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    isOffer: {
+      type: Boolean,
+      default: false,
+    },
+    offerBadge: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     attributes: {
       type: Map,
       of: String,

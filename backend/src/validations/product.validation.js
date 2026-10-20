@@ -14,6 +14,9 @@ const createProduct = {
     unit: Joi.string().valid(...productUnits).default('piece'),
     unitValue: Joi.string().allow('').optional(),
     isAvailable: Joi.boolean().optional(),
+    discountPercent: Joi.number().min(0).max(100).optional(),
+    isOffer: Joi.boolean().optional(),
+    offerBadge: Joi.string().allow('').optional(),
     attributes: Joi.object().optional(),
   }),
 };
@@ -53,6 +56,9 @@ const updateProduct = {
       unit: Joi.string().valid(...productUnits),
       unitValue: Joi.string().allow(''),
       isAvailable: Joi.boolean(),
+      discountPercent: Joi.number().min(0).max(100),
+      isOffer: Joi.boolean(),
+      offerBadge: Joi.string().allow(''),
       attributes: Joi.object(),
     })
     .min(1),
