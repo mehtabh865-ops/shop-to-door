@@ -50,6 +50,17 @@ if (config.env === 'production') {
   app.use('/v1/auth', authLimiter);
 }
 
+// Healthcheck endpoint for Render / cloud monitoring
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    service: 'Shop to Door Backend REST API',
+    version: '1.0.0',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // v1 api routes
 app.use('/v1', routes);
 

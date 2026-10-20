@@ -1,7 +1,10 @@
 // Determine API Base URL dynamically
 const getBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
   if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('std_custom_api_url');
+    if (custom) return custom.replace(/\/+$/, '');
+
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:5000/v1';
     }
@@ -592,5 +595,31 @@ export const api = {
       return { message: 'Deleted' };
     }
     return res;
+  },
+
+  // === SERVER STATUS & CONFIG ===
+  getEffectiveApiUrl() {
+    return BASE_URL;
+  },
+
+  setCustomApiUrl(url) {
+    if (url) {
+      localStorage.setItem('std_custom_api_url', url.trim());
+    } else {
+      localStorage.removeItem('std_custom_api_url');
+    }
+  },
+
+  resetApiUrl() {
+    localStorage.removeItem('std_custom_api_url');
+  },
+
+  async checkServerStatus() {
+    try {
+      const res = await fetch(`${BASE_URL}/shops?limit=1`, { method: 'GET' });
+      return res.ok;
+    } catch {
+      return false;
+    }
   },
 };
