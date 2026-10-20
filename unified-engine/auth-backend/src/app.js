@@ -50,6 +50,15 @@ if (config.env === 'production') {
   app.use('/v1/auth', authLimiter);
 }
 
+// root health check
+app.get('/', (req, res) => {
+  res.status(httpStatus.OK).json({
+    status: 'online',
+    service: 'Shop to Door Unified Engine',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // v1 api routes
 app.use('/v1', routes);
 

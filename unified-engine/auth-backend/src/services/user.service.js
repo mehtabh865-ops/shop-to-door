@@ -8,6 +8,12 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<User>}
  */
 const createUser = async (userBody) => {
+  if (userBody.phone && (await User.isPhoneTaken(userBody.phone))) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number already registered');
+  }
+  if (!userBody.email && userBody.phone) {
+    userBody.email = `${userBody.phone}@shoptodoor.local`;
+  }
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
@@ -44,6 +50,16 @@ const getUserById = async (id) => {
  */
 const getUserByEmail = async (email) => {
   return User.findOne({ email });
+};
+
+/**
+ * Get user by phone
+ * @param {string} phone
+ * @returns {Promise<User>}
+ */
+const getUserByPhone = async (phone) => {
+  if (!phone) return null;
+  return User.findOne({ phone });
 };
 
 /**
@@ -84,6 +100,7 @@ module.exports = {
   queryUsers,
   getUserById,
   getUserByEmail,
+  getUserByPhone,
   updateUserById,
   deleteUserById,
 };

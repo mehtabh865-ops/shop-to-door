@@ -35,10 +35,31 @@ const userSchema = mongoose.Schema(
       },
       private: true, // used by the toJSON plugin
     },
+    phone: {
+      type: String,
+      trim: true,
+      sparse: true,
+      index: true,
+    },
+    isPhoneVerified: {
+      type: Boolean,
+      default: true,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number],
+        default: [77.209, 28.6139],
+      },
+    },
     role: {
       type: String,
       enum: roles,
-      default: 'user',
+      default: 'customer',
     },
     isEmailVerified: {
       type: Boolean,
@@ -62,6 +83,12 @@ userSchema.plugin(paginate);
  */
 userSchema.statics.isEmailTaken = async function (email, excludeUserId) {
   const user = await this.findOne({ email, _id: { $ne: excludeUserId } });
+  return !!user;
+};
+
+userSchema.statics.isPhoneTaken = async function (phone, excludeUserId) {
+  if (!phone) return false;
+  const user = await this.findOne({ phone, _id: { $ne: excludeUserId } });
   return !!user;
 };
 
